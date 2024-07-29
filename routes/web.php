@@ -805,6 +805,7 @@ Route::get('ventas/estadoot/{id}/{pedido_combinacion_id?}', 'Ventas\Ordentrabajo
 Route::get('ventas/controlaordentrabajostock/{id}/{articulo_id}/{combinacion_id}', 'Ventas\OrdentrabajoController@controlaOtStock')->name('controla_ordetrabajo_stock');
 Route::post('ventas/ordenestrabajo/limpiafiltro', 'Ventas\OrdentrabajoController@limpiafiltro')->name('ordentrabajo.limpiafiltro');
 Route::get('ventas/listaordentrabajo/{formato?}/{busqueda?}', 'Ventas\OrdentrabajoController@lista')->name('lista_ordentrabajo');
+Route::post('ventas/ordenestrabajo/borrarOt', 'Ventas\OrdentrabajoController@borrarOt')->name('borrar_ot');
 
 /*
  * Comprobantes de venta
