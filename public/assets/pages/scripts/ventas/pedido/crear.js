@@ -316,7 +316,6 @@
 			
 			// Busca si tiene factura asociada
 			var listarUri = "/anitaERP/public/ventas/estadoot/"+ordentrabajo+"/"+pedido_combinacion_id;
-		
 			$.get(listarUri, function(data){
 				
 				if (data.numerofactura != -1 && data.numerofactura != -2 && data.numerofactura != -3)
@@ -377,17 +376,15 @@
 
 		$('.checkImpresion').on('change', function (event) {
 			event.preventDefault();
-			
 			if (flFactura && $(this).prop("checked"))
 			{
 				let ordentrabajo = $(this).parents("tr").find(".otcodigo").val();
 				let tilde = this;
 				let cliente_id = $("#cliente_id").val();
-				let estadocliente = $("#estadocliente").va/czl();
+				let estadocliente = $("#estadocliente").val();
 				let tiposuspensioncliente_id = $("#tiposuspensioncliente_id").val();
 				let nombretiposuspensioncliente = $("#nombretiposuspensioncliente").val();
 				let pedido_combinacion_id = $(this).parents("tr").find(".ids").val();
-			
 				// No deja factura cliente stock
 				if (cliente_id == CLIENTE_STOCK_ID)
 				{
@@ -395,7 +392,6 @@
 					$(tilde).prop("checked",false);
 					return;
 				}
-
 				// Debe chequear estado del cliente
 				if (estadocliente > '0' && 
 					(tiposuspensioncliente_id == PROFORMA ||
@@ -407,7 +403,6 @@
 					$(tilde).prop("checked",false);
 					return;
 				}
-			
 				// chequea si puede facturar
 				if (ordentrabajo <= 0)
 				{
@@ -415,13 +410,11 @@
 					$(tilde).prop("checked",false);
 					return;
 				}
-
 				// Busca si tiene factura asociada
 				var listarUri = "/anitaERP/public/ventas/estadoot/"+ordentrabajo+"/"+pedido_combinacion_id;
             
 				$.get(listarUri, function(data){
-					
-					if (data.numerofactura == -3)
+					if (data.terminada != 'si')
 					{
 						alert("OT no está terminada");
 
@@ -1255,16 +1248,15 @@
 		tallesidfactura_txt = [];
 		titulofactura_txt = [];
 		offFactura = 0;
+		cantItem = 0;
 		pedido_combinacion_ids = [];
 		ordentrabajo_ids = [];
 
 		cliente_id = $("#cliente_id").val();
-		
 		$("input[type=checkbox]:checked").each(function(){
 
 			ordentrabajo = $(this).parents('tr').find('.otcodigo').val();
 			itemId = $(this).parents('tr').find('.ids').val();
-			
 			if (!otFacturada(ordentrabajo, itemId))
 			{
 				pedido_combinacion_ids.push(itemId);
@@ -1300,8 +1292,9 @@
 						precios.push(value.precio);
 					});
 				}
-				
 				completarTalles(modulo_id, check, medidas, cantidades, precios);
+				cantItem = cantItem + 1;
+				alert('item ' + cantItem);
 			}
 		});
 		

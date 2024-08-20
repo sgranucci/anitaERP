@@ -401,12 +401,16 @@ class FacturaElectronicaService
 		$path = Storage::path($nombrexml);
 
 		$cmd = "cd storage/$pathafip; ./afip.php ".str_replace(".xml", "", $nombrexml)." 1>&2 2>err";
-		$process = new Process($cmd);
-		$process->run();
-		if (!$process->isSuccessful()) {
-			throw new ProcessFailedException($process);
-		}
-		echo $process->getOutput();
+		//$array_cmd = explode(' ', $cmd);
+		//$process = new Process($array_cmd);
+		//$process->run();
+		//if (!$process->isSuccessful()) {
+		//	throw new ProcessFailedException($process);
+		//}
+		//echo $process->getOutput();
+		system($cmd, $retorno);
+
+		return($retorno);
 	}
 	
 	private function GenerarXML ($data, $xml) {

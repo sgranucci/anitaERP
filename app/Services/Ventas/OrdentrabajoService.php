@@ -937,7 +937,6 @@ class OrdentrabajoService
 		$path = Storage::path($nombreEtiqueta);
 
 		system("lp -dzebra1 ".$path);
-
 		Storage::disk('local')->delete($nombreEtiqueta);
 
         return redirect()->back()->with('status','Las ordenes seleccionadas no existen');
@@ -2112,7 +2111,8 @@ class OrdentrabajoService
 		if ($tipoEmision == 'STOCK')
 			$cmd = $cmd.' STOCK';
 
-		$process = new Process($cmd);
+		$array_cmd = explode(' ', $cmd);
+		$process = new Process($array_cmd);
 		$process->run();
 		if (!$process->isSuccessful()) {
 	   		throw new ProcessFailedException($process);
@@ -2496,9 +2496,9 @@ class OrdentrabajoService
 			}
 		}
 		if (!$flTareaTerminada)
-			return ['numerofactura' => -3];
+			return ['numerofactura' => $numeroFactura, 'terminada' => 'no'];
 
-		return ['numerofactura' => $numeroFactura];
+		return ['numerofactura' => $numeroFactura, 'terminada' => 'si'];
 	}
 
 	// Trae articulo de la ot por codigo se usa cuando hay boletas juntas en la OT

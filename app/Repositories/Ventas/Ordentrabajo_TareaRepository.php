@@ -263,7 +263,7 @@ class Ordentrabajo_TareaRepository implements Ordentrabajo_TareaRepositoryInterf
 					->where('ordentrabajo_tarea.hastafecha', '=', null);
 			break;
 		default:
-			$data = $data->whereBetween('ordentrabajo_tarea.hastafecha', [$desdefecha, $hastafecha]);
+			$data = $data->whereBetween('ordentrabajo_tarea.desdefecha', [$desdefecha, $hastafecha]);
 		}
 
 		if ($desdearticulo != '' && $hastaarticulo != '')
