@@ -40,6 +40,14 @@
 		<th>osb</th>
 		<th>Reg.de volatilidad</th>
 		<th>INERTIA</th>
+		<th>Estado</th>
+		<th>TQR Verde</th>
+		<th>Stop TQR Verde </th>
+		<th>Tgt TQR Verde </th>
+		<th>TQR Rojo</th>
+		<th>Stop TQR Rojo</th>
+		<th>Tgt TQR Rojo</th>
+		<th>Peso XTL</th>
 		<th>Prov.min.</th>
 		<th>Prov.max.</th>
 		<th>Prov.ret.</th>
@@ -97,6 +105,14 @@
 			<td align="right">{{number_format(floatval($data['osb']), 0, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['regimenVolatilidad']), 0, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['inertia']), 9, ",", ".")}}</td>
+			<td align="right">{{$data['estado']}}</td>
+			<td align="right">{{number_format(floatval($data['TQRVerde']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['stopTQRVerde']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['tgtTQRVerde']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['TQRRojo']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['stopTQRRojo']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['tgtTQRRojo']), 4, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['pesoXTL']), 0, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMin']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMax']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provRet']), 2, ",", ".")}}</td>

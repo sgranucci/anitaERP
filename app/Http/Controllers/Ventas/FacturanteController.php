@@ -66,7 +66,7 @@ class FacturanteController extends Controller
                                             'hastafecha' => $hastafecha), $rules, $messages);
         if(!$validator->fails()) {
               $retorno = $this->facturanteService->listadoComprobanteFull($parameters);
-
+//dd($retorno);
               if (is_array($retorno))
                 $datas = $retorno;
               else
@@ -118,7 +118,8 @@ class FacturanteController extends Controller
                 $venta = $this->facturanteService->leeComprobante($tipoComprobante, $letra, 
                   $datas[$i]->Prefijo, $datas[$i]->Numero);
                 if (isset($venta[0]->ven_nro) ? $venta[0]->ven_nro != $datas[$i]->Numero : true)
-                  $arraySalida[] = $datas[$i];
+                //  if ($datas[$i]->Numero > 12307 && $datas[$i]->Numero < 12337)
+                    $arraySalida[] = $datas[$i];
               }
 
               $datas = $arraySalida;
@@ -133,40 +134,49 @@ class FacturanteController extends Controller
               $errors = $validator->errors();
               return response()->json($errors->all());
            }
-
-        return redirect('ventas/crearimportacionfacturastiendanube')->with('mensaje', 'Comprobantes leidos con éxito');
+        return view('ventas/crearimportacionfacturastiendanube')->with('mensaje', 'Comprobantes leidos con éxito');
     }
 
     public function generarFacturasTiendaNube(Request $request)
     {
-        //dd($request);
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', '2400');
 
-        for ($ii = 0; $ii < count($request->tipoComprobantes); $ii++)
+        $datos = json_decode($request->datos,true);
+
+        $qFacturas = count($datos);
+        //$qFacturas = 1;
+        for ($ii = 0; $ii < $qFacturas; $ii++)
         {
-            if ($request->mediospago[$ii] != '5')
+            if ($datos[$ii]['mediopago'] != '5') 
             {
               // CAE y CLIENTES VIENEN de a dos registro en array
-              $this->facturanteService->generaFactura($request->tipoComprobantes[$ii], $request->prefijos[$ii], $request->numeros[$ii],
-                                          $request->condicionVentas[$ii], $request->fechaHoras[$ii], 
-                                          $request->totales[$ii], $request->totalNetos[$ii], $request->ivas1[$ii], 
-                                          $request->ivas2[$ii], $request->subtotalNoAlcanzados[$ii], 
-                                          $request->subtotalExcentos[$ii], 
-                                          $request->totalPercepcionesIIBB[$ii], $request->items[$ii], 
-                                          $request->caes[$ii*2], 
-                                          $request->fechaVencimientoCaes[$ii], $request->clientes[$ii*2],
-                                          $request->mediospago[$ii]);
+              $ret = $this->facturanteService->generaFactura($datos[$ii]['tipocomprobante'], $datos[$ii]['prefijo'], 
+                                          $datos[$ii]['numero'],
+                                          $datos[$ii]['condicionventa'], $datos[$ii]['fechahora'], 
+                                          $datos[$ii]['total'], $datos[$ii]['totalneto'], 
+                                          $datos[$ii]['iva1'], 
+                                          $datos[$ii]['iva2'], $datos[$ii]['subtotalnoalcanzado'], 
+                                          $datos[$ii]['subtotalexcento'], 
+                                          $datos[$ii]['totalpercepcioniibb'], $datos[$ii]['item'], 
+                                          $datos[$ii]['cae'], 
+                                          $datos[$ii]['fechavencimientocae'], $datos[$ii]['cliente'],
+                                          $datos[$ii]['mediopago']);
+                                    
+              if ($ret['error'] != 'Success')
+                return($ret);
+                            
               $signo = 1;
-              if (substr($request->tipoComprobantes[$ii], 0, 2) == "NC")
+              if (substr($datos[$ii]['tipocomprobante'], 0, 2) == "NC")
                 $signo = -1;
-              $total = $request->totales[$ii]*$signo;
-              $this->facturanteService->generaPre($total, $request->mediospago[$ii]);
+              $total = $datos[$ii]['total']*$signo;
+              $this->facturanteService->generaPre($total, $datos[$ii]['mediopago']);
             }
         }
 
         // Graba PRE con asiento contable
         $this->facturanteService->grabaPre(Carbon::now());
-
-        return redirect('ventas/crearimportacionfacturastiendanube')->with('mensaje', 'Comprobantes grabados con éxito');
+        return ($ret);
     }
 
 }

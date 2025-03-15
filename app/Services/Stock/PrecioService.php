@@ -67,7 +67,7 @@ class PrecioService
 					$fecha = $fechavigencia;
 				else
 					$fecha = date('Y-m-d', strtotime($fechavigencia));
-				
+
 				$precio = Precio::with('listaprecios')
 								->where('articulo_id',$articulo_id)
 								->where('listaprecio_id',$lista)
@@ -97,7 +97,6 @@ class PrecioService
 				  					];
 			}
 		}
-
 		return($array_precio);
 	}
 

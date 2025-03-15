@@ -206,18 +206,21 @@ class TiendaNubeController extends Controller
         $numeroVariante = 0;
         foreach($response as $variant)
         {
-            $numeroVariante++;
-            if (isset($variant->id))
-                $estado = "ok";
-            else    
-                $estado = $variant;
+            if (isset($variant->sku))
+            {
+                $numeroVariante++;
+                if (isset($variant->id))
+                    $estado = "ok";
+                else    
+                    $estado = $variant;
 
-            // Agrega respuesta
-            $respuesta[] = [
-                "sku" => $anterSku,
-                "variante" => $variant->sku,
-                "estado" => $estado
-            ];
+                // Agrega respuesta
+                $respuesta[] = [
+                    "sku" => $anterSku,
+                    "variante" => $variant->sku,
+                    "estado" => $estado
+                ];
+            }
         }
     }
 }

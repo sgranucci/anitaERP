@@ -150,7 +150,7 @@ class CombinacionController extends Controller
 		}
 		else
 		{
-			$articulo = Articulo::where("id",$id)->first();
+			$articulo = Articulo::where("id",$data['articulo_id'])->first();
 
         	$plarmado_id = null;
 
@@ -158,7 +158,7 @@ class CombinacionController extends Controller
 			{
 				$fondo_id = $articulo->fondo_id;
 				$horma_id = $articulo->horma_id;
-				$serigrafia_id = $articuo->serigrafia_id;
+				$serigrafia_id = $articulo->serigrafia_id;
 			}
 		}
 		if (!array_key_exists('plvista_16_26', $data))

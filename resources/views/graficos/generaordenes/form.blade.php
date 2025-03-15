@@ -39,7 +39,7 @@
 	<select name="filtroSetup" class="col-lg-3 form-control" required>
     	<option value="">-- Elija la filtro de setup --</option>
        	@foreach($filtroSetup_enum as $value => $filtroSetup)
-			@if ($value == 'A')
+			@if ($value == 'T')
        			<option value="{{ $value }}" selected>{{ $filtroSetup }}</option>    
 			@else
 			    <option value="{{ $value }}">{{ $filtroSetup }}</option>
@@ -97,4 +97,13 @@
 		</div>
 		
 	</div>
+	@if (session("batchId"))
+		<div class="alert alert-success alert-dismissible">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+			<h4><i class="icon fa fa-check"></i> Batch iniciado con ID: </h4>
+			<ul>
+				<li>{{ session("batchId") }}</li>
+			</ul>
+		</div>
+	@endif
 </div>

@@ -42,7 +42,7 @@ class ApiAnita {
             echo $error_msg; 
          } 
         curl_close($curl);
-        //dd($response);
+        //echo($response);
         return $response;
     }
 

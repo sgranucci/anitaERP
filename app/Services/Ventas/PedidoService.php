@@ -649,8 +649,8 @@ class PedidoService
 					if ($descuentoLinea > 0)
 						$precioArticulo = $precio[0]['precio'] * (1 - ($descuentoLinea / 100));
 					else
-						$precioArticulo = $precio[0]['precio'];										
-
+						$precioArticulo = $precio[0]['precio'];			
+					
                     for ($i = 0, $flEncontro = false; $i < count($tblImpuesto); $i++)
                     {
                     	if ($tblImpuesto[$i]['precio'] == $precioArticulo &&
@@ -672,7 +672,7 @@ class PedidoService
 								"descuentointegrado" => $pedidoitem->descuentointegrado,
 								"descuentofinal" => $pedido->descuento,
 								"descuentointegradofinal" => $pedido->descuentointegrado,
-								"incluyeimpuesto" => $pedidoitem->incluyeimpuesto,
+								"incluyeimpuesto" => $precio[0]['incluyeimpuesto'],
 								"impuesto_id" => $articulo->impuesto_id,
 								"id" => $pedidoitem->id
 								];
@@ -691,7 +691,6 @@ class PedidoService
 						  "condicioniibb" => $cliente->condicioniibb,
 						  "provincia" => $cliente->provincia_id,
 						];
-
 		// Calcula impuestos
 		$conceptosTotales = $this->impuestoService->calculaImpuestoVenta($tblImpuesto, $datosCliente);
 

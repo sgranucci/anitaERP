@@ -13,6 +13,7 @@ class IndicadoresService
 	private $desdeFecha, $hastaFecha;
     private $desdeHora, $hastaHora;
 
+    public $qLectura = 0;
     public $especie;
     public $compresion, $compresiontxt, $factorCompresion;
     public $calculoBase, $mmCorta, $mmLarga, $calculoBase_enum;
@@ -23,6 +24,7 @@ class IndicadoresService
     public $totalContratos;
     public $cantidadActivaContratos;
     public $item;
+    public $data;
 
     // Variables de job para generar ordenes
     public $comision;
@@ -62,12 +64,17 @@ class IndicadoresService
     public $ultimoMaximoBajista;
     public $ultimoMinimoBajista;
     public $flSinFiltros;
-    
+
+    // Modificacion para definir variable del peso XTL 01/03/2025
+    public $pesoXTLActual;
+    public $flBuscaVelaQuiebreInertia;
+    public $acumFlAbrePosicionEntrada;
+
     private $flBatch;
     private $k1, $k2;
     private $dataAnterior = [];
     private $fechaUltimaLectura;
-    private $datas = [];
+    public $datas = [];
     public $operaciones = [];
 	protected $dates = ['fecha'];
     private $offsetMinimoE;
@@ -79,27 +86,27 @@ class IndicadoresService
     private $offsetMaximoC;
     private $offsetMinimoB;
     private $offsetMaximoA;
-    private $offsetD;
-    private $offsetCAbc;
-    private $offsetCAbCd;
-    private $offsetBAbc;
-    private $offsetBAbCd;
-    private $offsetAAbc;
-    private $offsetAAbCd;
-    private $offsetMaximoCW4;
-    private $offsetMinimoTW4;
-    private $offsetMaximoDW4;
-    private $offsetMinimoUW4;
-    private $offsetMaximoOW4;
-    private $offsetMinimoCW4;
-    private $offsetMaximoTW4;
-    private $offsetMinimoDW4;
-    private $offsetMaximoUW4;
-    private $offsetMinimoOW4;
-    private $acumFlAnulacionW4AlcistaActiva;
-    private $acumFlAnulacionW4BajistaActiva;
-    private $offsetU;
-    private $offsetO;
+    public $offsetD;
+    public $offsetCAbc;
+    public $offsetCAbCd;
+    public $offsetBAbc;
+    public $offsetBAbCd;
+    public $offsetAAbc;
+    public $offsetAAbCd;
+    public $offsetMaximoCW4;
+    public $offsetMinimoTW4;
+    public $offsetMaximoDW4;
+    public $offsetMinimoUW4;
+    public $offsetMaximoOW4;
+    public $offsetMinimoCW4;
+    public $offsetMaximoTW4;
+    public $offsetMinimoDW4;
+    public $offsetMaximoUW4;
+    public $offsetMinimoOW4;
+    public $acumFlAnulacionW4AlcistaActiva;
+    public $acumFlAnulacionW4BajistaActiva;
+    public $offsetU;
+    public $offsetO;
     private $offsetAbCd;
     private $offsetAbc;
     private $offset3Drives;
@@ -107,7 +114,7 @@ class IndicadoresService
     private $offsetW4, $q = 0;
     private $offsetSp;
 	private $tgt = [];
-    private $pivotes = [];
+    public $pivotes = [];
     private $administracionPosicion;
     private $tiempo;
     public $flVolatilidad, $flInertia;
@@ -222,6 +229,11 @@ class IndicadoresService
         $this->offsetAAbCd = 0;
         $this->offsetU = 0;
         $this->offsetO = 0;
+
+        // Modificacion para inicializar peso XTL 01/03/2025
+        $this->pesoXTLActual = 0;
+        $this->flBuscaVelaQuiebreInertia = false;
+        $this->acumFlAbrePosicionEntrada = false;
         
         // Variables de calculo de swing
         $this->acumTendencia = 'Indefinida';
@@ -373,8 +385,9 @@ class IndicadoresService
                     $this->CalculaCCI($item, $high, $low, $close, $precioTipico, $SMACCI, $auxCCI,
                         $blanco1, $blanco2, $CCI);
 
+                    // Modificacion para calcular XTL 01/03/2025
                     // Calcula XTL
-                    $this->CalculaXTL($item, $high, $low, $precioTipico, $SMAXTL, $auxXTL, $CCIXTL, $estado, $rango, 
+                    $this->CalculaXTL($item, $high, $low, $close, $precioTipico, $SMAXTL, $auxXTL, $CCIXTL, $estado, $rango, 
                                     $TQRVerde, $stopTQRVerde, $tgtTQRVerde,
                                     $TQRRojo, $stopTQRRojo, $tgtTQRRojo);
 
@@ -576,7 +589,8 @@ class IndicadoresService
         }
     }
 
-    private function CalculaXTL($item, $high, $low, $precioTipico, &$SMAXTL, &$auxXTL, &$CCIXTL, 
+    // Modificacion para calcular XTL 01/03/2025
+    private function CalculaXTL($item, $high, $low, $close, $precioTipico, &$SMAXTL, &$auxXTL, &$CCIXTL, 
                                 &$estado, &$rango, 
                                 &$TQRVerde, &$stopTQRVerde, &$tgtTQRVerde,
                                 &$TQRRojo, &$stopTQRRojo, &$tgtTQRRojo)
@@ -611,6 +625,20 @@ class IndicadoresService
             if ($estado != $this->datas[$item-2]['estado'] && $estado != 'neutral')
                 $rango = ($high - $low) / 2;
             
+            // Modificacion para asignar peso XTL al cambiar de estado 01/03/2025
+            if ($estado != $this->datas[$item-2]['estado'])
+            {
+                // Antes de pisar XTL del mismo sentido busca si tiene candidatos
+                if ($this->datas[$item-2]['estado'] != 'neutral')
+                {
+                    $ultimoXTL = self::traeXTLAnterior($item-2, $this->datas[$item-2]['estado'] == 'rojo' ? 'BAJISTA' : 'ALCISTA');
+
+                    if (self::verificaCandidatoXTL($ultimoXTL['offset'], $estado))
+                        $this->datas[$item-2]['pesoXTL'] = $this->pesoXTLActual;
+                }
+                $this->pesoXTLActual = 0;
+            }
+            
             if ($this->datas[$item-2]['estado'] != 'verde' && $estado == 'verde')
                 $TQRVerde = $high + $rango;
             elseif ($this->datas[$item-2]['estado'] == 'verde' && $estado == 'verde')
@@ -640,11 +668,46 @@ class IndicadoresService
                 $tgtTQRRojo = $low - ($rango * 4);
             elseif ($this->datas[$item-2]['estado'] == 'rojo' && $estado == 'rojo')
                 $tgtTQRRojo = $this->datas[$item-2]['tgtTQRRojo'];
+
+            // Modificacion para calcular peso XTL 01/03/2025
+            switch($estado)
+            {
+            case 'rojo':
+                if ($close < $TQRRojo)
+                {
+                    if ($low < $tgtTQRRojo || $high < $tgtTQRRojo)
+                        $this->pesoXTLActual+=2;
+                    else    
+                        $this->pesoXTLActual++;
+                }
+                break;
+
+            case 'verde':
+                if ($close > $TQRVerde)
+                {
+                    if ($low > $tgtTQRVerde || $high > $tgtTQRVerde)
+                        $this->pesoXTLActual+=2;
+                    else
+                        $this->pesoXTLActual++;
+                }
+                break;
+            }
         }
     }
     
     private function calculaPivot($i)
     {
+        //if ($i == 999)
+        //{
+        //    $fechaLectura = date('Y-m-d', ceil($this->datas[$i]['fecha']/1000));
+        //    echo(' '.$i.' '."paso ".$fechaLectura.' '.$this->datas[$i]['horainicio'].' abre pos '.$this->acumFlAbrePosicion.' ');
+        //    echo(' minimo '.$this->datas[$this->acumBnMinActual]['min'].' maximo '.$this->datas[$this->acumBnMaxActual]['max']);
+        //    echo(' tendencia '.$this->acumTendencia.' offset minimo '.$this->acumBnMinActual.' offset maximo '.$this->acumBnMaxActual);
+        //    $this->qLectura++;
+
+        //    if ($this->qLectura == 2)
+        //        dd('x');
+        //}
         if ($this->acumTendencia == 'Indefinida')
         {
             if ($this->controlaRango($i, $this->datas[$i]['high'], 'Maximo'))
@@ -822,35 +885,38 @@ class IndicadoresService
 
     private function convierteDefinitivo($i, $off, $tipoValor)
     {
-        if ($tipoValor == 'Maximo')
+        if (isset($this->datas[$i]))
         {
-            $this->acumBnMaximoAnterior = $this->acumBnMaximo;
-            $this->datas[$i]['max'] = $this->datas[$i]['provMax'];
-            $this->acumBnMaximo = $i;
-            
-            $this->calculaBarras($this->acumBnMinimoAnterior, $i);
+            if ($tipoValor == 'Maximo')
+            {
+                $this->acumBnMaximoAnterior = $this->acumBnMaximo;
+                $this->datas[$i]['max'] = $this->datas[$i]['provMax'];
+                $this->acumBnMaximo = $i;
+                
+                $this->calculaBarras($this->acumBnMinimoAnterior, $i);
 
-            // Calcula pivotes
-            $this->calculaPivotes($this->acumBnMaximo, $off, 0, $this->datas[$this->acumBnMaximo]['max'], 
-                                $this->acumBnMinimo, $this->acumBnMaximo, 'MAXIMO');            
+                // Calcula pivotes
+                $this->calculaPivotes($this->acumBnMaximo, $off, 0, $this->datas[$this->acumBnMaximo]['max'], 
+                                    $this->acumBnMinimo, $this->acumBnMaximo, 'MAXIMO');            
 
-            $this->datas[$i]['swingBarsPrev'] = $this->datas[$this->acumBnMinimo]['swingBars'];
+                $this->datas[$i]['swingBarsPrev'] = $this->datas[$this->acumBnMinimo]['swingBars'];
+            }
+            else
+            {
+                $this->acumBnMinimoAnterior = $this->acumBnMinimo;
+                $this->datas[$i]['min'] = $this->datas[$i]['provMin'];
+                $this->acumBnMinimo = $i;
+
+                $this->calculaBarras($this->acumBnMaximoAnterior, $i);
+
+                // Calcula pivotes
+                $this->calculaPivotes($this->acumBnMinimo, $off, $this->datas[$this->acumBnMinimo]['min'], 0, 
+                                    $this->acumBnMinimo, $this->acumBnMaximo, 'MINIMO');
+
+                $this->datas[$i]['swingBarsPrev'] = $this->datas[$this->acumBnMaximo]['swingBars'];                                
+            }
+            $this->datas[$i]['swingBars'] = abs($this->acumBnMinimo-$this->acumBnMaximo);
         }
-        else
-        {
-            $this->acumBnMinimoAnterior = $this->acumBnMinimo;
-            $this->datas[$i]['min'] = $this->datas[$i]['provMin'];
-            $this->acumBnMinimo = $i;
-
-            $this->calculaBarras($this->acumBnMaximoAnterior, $i);
-
-            // Calcula pivotes
-            $this->calculaPivotes($this->acumBnMinimo, $off, $this->datas[$this->acumBnMinimo]['min'], 0, 
-                                $this->acumBnMinimo, $this->acumBnMaximo, 'MINIMO');
-
-            $this->datas[$i]['swingBarsPrev'] = $this->datas[$this->acumBnMaximo]['swingBars'];                                
-        }
-        $this->datas[$i]['swingBars'] = abs($this->acumBnMinimo-$this->acumBnMaximo);
     }
 
     private function calculaBarras($desde, $hasta)
@@ -1245,7 +1311,16 @@ class IndicadoresService
         if ($this->datas[$i]['provMax'] != 0 || $this->datas[$i]['provMin'] != 0) 
 			$this->calculaProvRet($i, $this->datas[$i]['provMax'] != 0. ? $this->datas[$i]['provMax'] : $this->datas[$i]['provMin']);
 
+        //if ($i == 2000)
+            //dd($this->datas[$i]['open'].' '.$this->datas[$i]['fechastr']);
+        //$fechaLectura = date('Y-m-d', ceil($this->datas[$i]['fecha']/1000));
+        //if ($fechaLectura == "2024-04-10" && $this->datas[$i]['horainicio'] === "14:20:00")
+        //{
+        //    echo($i.' '."paso ".$fechaLectura.' '.$this->datas[$i]['horainicio'].' abre pos '.$this->acumFlBuscaEntrada.' ');
+        //}
+            // calcula riesgo retorno y entra
         // Sigue una vela mas con la entrada habilitada para disparar gatillo 
+        // Modificacion para nuevo XTL 09/03/2025
         if ($this->acumFlBuscaEntrada)
         {
             // Controla ventana de tiempo para entrada
@@ -1253,56 +1328,74 @@ class IndicadoresService
             $this->acumFlAbrePosicionEntrada = false;
             if ($this->acumQVentanaEntrada < 6)
             {
-                // Abre posicion si la vela pasa por el punto de entrada
+                // Abre posicion si la vela quiebra inertia
                 if ($this->acumFlAcista)
                 {
-                    if ($this->datas[$i]['high'] >= $this->acumPuntoEntrada &&
-                        $this->datas[$i]['low'] <= $this->acumPuntoEntrada)
+                    if ($this->datas[$i]['close'] > $this->datas[$i]['inertia'])
                     {
-                        $this->datas[$i]['entrada'] .= 
-                            " ABRE POSICION ALCISTA POR PASAR POR PUNTO DE ENTRADA ".$this->acumPuntoEntrada.
-                            " Vela nro.".$this->acumQVentanaEntrada;
+                        $this->datas[$i]['filtroActivo'] .= 
+                            " CLOSE QUIEBRA INERTIA = ".$this->datas[$i]['inertia'];
 
-                        $this->acumFlAbrePosicionEntrada = true;
+                        $this->acumFlAbrePosicionEntrada = true;     
+                        $this->flBuscaVelaQuiebreInertia = false;   
+                        $this->acumFlBuscaEntrada = false;                
                     }
-                    else
-                    {
-                        if ($this->datas[$i]['open'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['close'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['high'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['low'] >= $this->acumStopLoss)
-                        {
-                            $this->datas[$i]['entrada'] .= " CIERRA VENTANA ALCISTA POR STOP LOSS ".$this->acumStopLoss;
-                            $this->acumFlBuscaEntrada = false;
-                            $this->acumQVentanaEntrada = 6;
-                        }
-                    }
+                    //if ($this->datas[$i]['high'] >= $this->acumPuntoEntrada &&
+                    //    $this->datas[$i]['low'] <= $this->acumPuntoEntrada)
+                    //{
+                    //    $this->datas[$i]['entrada'] .= 
+                    //        " ABRE POSICION ALCISTA POR PASAR POR PUNTO DE ENTRADA ".$this->acumPuntoEntrada.
+                    //        " Vela nro.".$this->acumQVentanaEntrada;
+
+                    //    $this->acumFlAbrePosicionEntrada = true;
+                    //}
+                    //else
+                    //{
+                    //  if ($this->datas[$i]['open'] >= $this->acumStopLoss ||
+                    //      $this->datas[$i]['close'] >= $this->acumStopLoss ||
+                    //        $this->datas[$i]['high'] >= $this->acumStopLoss ||
+                    //        $this->datas[$i]['low'] >= $this->acumStopLoss)
+                    //    {
+                    //        $this->datas[$i]['entrada'] .= " CIERRA VENTANA ALCISTA POR STOP LOSS ".$this->acumStopLoss;
+                    //        $this->acumFlBuscaEntrada = false;
+                    //        $this->acumQVentanaEntrada = 6;
+                    //    }
+                    //}
                 }
 
                 if ($this->acumFlBajista)
                 {
-                    // Si la vela esta entre la entrada ingresa
-                    if ($this->datas[$i]['high'] >= $this->acumPuntoEntrada &&
-                        $this->datas[$i]['low'] <= $this->acumPuntoEntrada)
+                    if ($this->datas[$i]['close'] < $this->datas[$i]['inertia'])
                     {
-                        $this->datas[$i]['entrada'] .= 
-                            " ABRE POSICION BAJISTA POR PASAR POR PUNTO DE ENTRADA ".$this->acumPuntoEntrada.
-                            " Vela nro.".$this->acumQVentanaEntrada;
+                        $this->datas[$i]['filtroActivo'] .= 
+                            " CLOSE QUIEBRA INERTIA = ".$this->datas[$i]['inertia'];
 
-                        $this->acumFlAbrePosicionEntrada = true;
+                        $this->acumFlAbrePosicionEntrada = true;       
+                        $this->flBuscaVelaQuiebreInertia = false;      
+                        $this->acumFlBuscaEntrada = false;                 
                     }
-                    else
-                    {
-                        if ($this->datas[$i]['open'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['close'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['high'] >= $this->acumStopLoss ||
-                            $this->datas[$i]['low'] >= $this->acumStopLoss)
-                        {
-                            $this->datas[$i]['entrada'] .= " CIERRA VENTANA BAJISTA POR STOP LOSS ".$this->acumStopLoss;
-                            $this->acumFlBuscaEntrada = false;
-                            $this->acumQVentanaEntrada = 6;
-                        }
-                    }
+                    // Si la vela esta entre la entrada ingresa
+                    //if ($this->datas[$i]['high'] >= $this->acumPuntoEntrada &&
+                    //    $this->datas[$i]['low'] <= $this->acumPuntoEntrada)
+                    //{
+                    //    $this->datas[$i]['entrada'] .= 
+                    //        " ABRE POSICION BAJISTA POR PASAR POR PUNTO DE ENTRADA ".$this->acumPuntoEntrada.
+                    //        " Vela nro.".$this->acumQVentanaEntrada;
+
+                    //    $this->acumFlAbrePosicionEntrada = true;
+                    //}
+                    //else
+                    //{
+                    //    if ($this->datas[$i]['open'] >= $this->acumStopLoss ||
+                    //        $this->datas[$i]['close'] >= $this->acumStopLoss ||
+                    //        $this->datas[$i]['high'] >= $this->acumStopLoss ||
+                    //        $this->datas[$i]['low'] >= $this->acumStopLoss)
+                    //    {
+                    //        $this->datas[$i]['entrada'] .= " CIERRA VENTANA BAJISTA POR STOP LOSS ".$this->acumStopLoss;
+                    //        $this->acumFlBuscaEntrada = false;
+                    //        $this->acumQVentanaEntrada = 6;
+                    //    }
+                    //}
                 }
             }
             else
@@ -1310,13 +1403,10 @@ class IndicadoresService
                 $this->datas[$i]['entrada'] .= " CIERRA VENTANA DE PUNTO DE ENTRADA ".$this->acumPuntoEntrada;
                 $this->acumFlBuscaEntrada = false;
             }
-
-            if ($this->acumIdTrade > 1)
-            {
-
-            }
-
-            // calcula riesgo retorno
+        }
+        else // Modificacion p/nuevo XTL 09/03/2025
+             // Abre a la siguiente vela de quiebre de inertia
+        {
             if ($this->acumFlAbrePosicionEntrada)
             {
                 $retorno = 0;
@@ -1347,15 +1437,17 @@ class IndicadoresService
                     $this->datas[$i]['entrada'] .= ' Retorno '.$retorno.' Riesgo '.$riesgo.' RRR '.
                                                     $rrr.' SL '.$this->acumStopLoss;
 
-                if (($this->flSinFiltros ? $rrr >= 1.5 : true) && 
+                // Modificacion para nuevo calculo XTL 14/03/25
+                if (($this->flSinFiltros ? $rrr >= 0.01 : true) && 
                     $this->datas[$i]['horainicio'] >= '04:00:00' &&
                     $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00'))
                 {
                     $this->acumValorEntrada = $this->datas[$i]['open'];
 
+                    // Modificacion p/nuevo manejo de XTL 14/03/25
                     // Asigna valor de entrada segun filtro open-high-close-low
-                    if ($this->acumFlAbrePosicionEntrada)
-                        $this->acumValorEntrada = $this->acumPuntoEntrada;
+                    //if ($this->acumFlAbrePosicionEntrada)
+                    //    $this->acumValorEntrada = $this->acumPuntoEntrada;
 
                     $riesgoPuntos = abs($this->acumValorEntrada-$this->acumStopLoss);
                     $riesgoTicks = round($riesgoPuntos/$this->ticker, 0);
@@ -1376,6 +1468,7 @@ class IndicadoresService
 
                         $this->acumFlBuscaEntrada = false;
                         $this->acumQVentanaEntrada = 6;
+                        $this->acumFlAbrePosicionEntrada = false;
 
                         $this->datas[$i]['e'] = $this->acumValorEntrada;
                         $this->datas[$i]['stoploss'] = $this->acumStopLoss;
@@ -1464,6 +1557,9 @@ class IndicadoresService
                             $this->datas[$i]['evento'] = 'TR';
                             $this->acumFlAbrePosicion = false;                            
                         }
+
+                        //if ($this->acumIdTrade == 7)
+                            //dd($this->operaciones);
 
                         // Chequea cierre de operacion por si es en la misma vela de apertura
                         // Controla si cumple eventos de cierre (TGT Hit / SL)
@@ -1639,30 +1735,36 @@ class IndicadoresService
 
             if ($this->datas[$i]['provMax'] > $maximo && $this->datas[$i]['provMax'] != 0 && !$this->acumFlFiltroOutBound) // Es HH
             {
-                if ($this->datas[$offMin]['setup'] == 'LL')
+                if ($offMin != -1)
                 {
-                    $this->acumFlFiltroOutBound = true;
-                    $this->datas[$i]['outbound'] = true;
+                    if ($this->datas[$offMin]['setup'] == 'LL')
+                    {
+                        $this->acumFlFiltroOutBound = true;
+                        $this->datas[$i]['outbound'] = true;
 
-                    $this->datas[$i]['entrada'] .= 'ACTIVA FILTRO OUTBOUND HH / LL';
+                        $this->datas[$i]['entrada'] .= 'ACTIVA FILTRO OUTBOUND HH / LL';
 
-                    $this->datas[$i]['filtroActivo'] .= " Activa OUT";
+                        $this->datas[$i]['filtroActivo'] .= " Activa OUT";
+                    }
                 }
             }
 
             if ($this->datas[$i]['provMin'] < $minimo && $this->datas[$i]['provMin'] != 0 && !$this->acumFlFiltroOutBound) // Es LL
             {
-                if ($this->datas[$offMax]['setup'] == 'HH')
+                if ($offMax != -1)
                 {
-                    $this->acumFlFiltroOutBound = true;
-                    $this->datas[$i]['outbound'] = true;
+                    if ($this->datas[$offMax]['setup'] == 'HH')
+                    {
+                        $this->acumFlFiltroOutBound = true;
+                        $this->datas[$i]['outbound'] = true;
 
-                    $this->datas[$i]['entrada'] .= ' ACTIVA FILTRO OUTBOUND LL / HH ';
+                        $this->datas[$i]['entrada'] .= ' ACTIVA FILTRO OUTBOUND LL / HH ';
 
-                    $this->datas[$i]['filtroActivo'] .= " Activa OUT";
+                        $this->datas[$i]['filtroActivo'] .= " Activa OUT";
+                    }
                 }
             }
-
+            
             // Busca si provmax es menor al ultimo maximo
             if ($this->datas[$i]['provMax'] < $maximo && $this->datas[$i]['provMax'] != 0)
             {
@@ -1861,6 +1963,7 @@ class IndicadoresService
             if (!$this->acumFlAnulacionW4BajistaActiva)
                 $this->datas[$i]['entrada'] .= ' Cierra BLANCA W4';
         }
+
 //if ($i == 934)
 //{
     //dd($this->datas[$i]['low'].' '.$this->datas[$i]['provRet'].' '.$this->datas[$i]['regimenVolatilidad'].' '.
@@ -1868,7 +1971,20 @@ class IndicadoresService
     //' x3'.$this->acumFlBuscaEntrada.
     //' x4'.$this->acumconFiltrosCandidato.' x5'.$this->flAnulaCandidato.' x6'.$this->acumFlFiltroOutBound);
 //}
-        if (($this->filtroSetup != 'T' ? !$this->acumFlAbrePosicion : true) &&
+//$fechaLectura = date('Y-m-d', ceil($this->datas[$i]['fecha']/1000));
+//if ($fechaLectura == "2024-04-10" && $this->datas[$i]['horainicio'] === "14:20:00")
+//{
+//    echo($i.' '.$this->datas[$i]['horainicio'].' provret '.$this->datas[$i]['provRet'].
+//        ' busca entrada '.$this->acumFlBuscaEntrada.
+//        ' regimen vol '. $this->datas[$i]['regimenVolatilidad'].
+//        ' fl cerro por tiempo alcista '.$this->acumFlCerroPorTiempoAlcista.
+//        ' fl cerro por tiempo bajista '.$this->acumFlCerroPorTiempoBajista.
+//        ' fl filtro outbound '.$this->acumFlFiltroOutBound);
+//    dd('y');
+//}
+
+        // Modificacion nuevo manejo XTL 13/3/2025
+        if (!$this->acumFlAbrePosicion && //($this->filtroSetup != 'T' ? !$this->acumFlAbrePosicion : true) &&
             $this->datas[$i]['provRet'] >= 0.382 && $this->datas[$i]['provRet'] <= 1 &&
             $this->datas[$i]['regimenVolatilidad'] == 1 &&
             $this->datas[$i]['horainicio'] >= '08:00:00' &&
@@ -1878,6 +1994,13 @@ class IndicadoresService
             //($this->acumconFiltrosCandidato ? !$this->flAnulaCandidato : true) &&
             !$this->acumFlFiltroOutBound)
         {
+            //$fechaLectura = date('Y-m-d', ceil($this->datas[$i]['fecha']/1000));
+            //if ($fechaLectura == "2024-04-10" && $this->datas[$i]['horainicio'] === "14:20:00")
+            //{
+            //    echo('entra');
+            //    dd('x');
+            //}
+
             // Calcula filtros de inertia y volatilidad
 			if ($this->datas[$i]['provMin'] != 0 || $this->datas[$i]['provMax'] != 0)
 			{
@@ -1989,7 +2112,45 @@ class IndicadoresService
                 // Si obtiene maximo y minimo verifica gatillo
                 if ($this->acumOff1oA != -1 && $this->acumOff0 != -1)
                 {
-                    if ($retroceso >= 0.382 && $relacionVelas <= 1)
+                	// Modificacion para verificar tendencia con XTL 01/03/2025
+                	if ($this->acumFlBajista)
+                	{
+						// Busca el ultimo XTL y trae el peso especifico
+                        $ultimoXTL = self::traeUltimoXTL($i, 'BAJISTA');
+                        $pesoUltimoXTL = $ultimoXTL['peso'];
+
+						// Si el peso del ultimo XTL es mayor al XTL actual busca vela que quiebre inertia
+                       	if ($pesoUltimoXTL > $this->pesoXTLActual && !$this->acumFlAbrePosicionEntrada)
+                        {
+                            $this->flBuscaVelaQuiebreInertia = true;
+
+                            $this->datas[$i]['filtroActivo'] = 'Peso Ultimo XTL = '.$pesoUltimoXTL.
+                                                            ' Peso XTL Actual = '.$this->pesoXTLActual.
+                                                            ' BUSCA QUIEBRE INERTIA BAJISTA ';
+                        }
+                	}
+
+                    // Modificacion para verificar tendencia con XTL 01/03/2025
+                	if ($this->acumFlAcista)
+                	{
+                    	// Busca el ultimo XTL y trae el peso especifico
+                        $ultimoXTL = self::traeUltimoXTL($i, 'ALCISTA');
+                        $pesoUltimoXTL = $ultimoXTL['peso'];
+
+						// Si el peso del ultimo XTL es mayor al XTL actual busca vela que quiebre inertia
+                       	if ($pesoUltimoXTL > $this->pesoXTLActual)
+                        {
+                            $this->flBuscaVelaQuiebreInertia = true;  	 
+
+                            $this->datas[$i]['filtroActivo'] = 'Peso Ultimo XTL = '.$pesoUltimoXTL.
+                                                        ' Peso XTL Actual = '.$this->pesoXTLActual.
+                                                        ' BUSCA QUIEBRE INERTIA ALCISTA ';
+                        }
+                	}
+                    // Modificacion para nuevo calculo filtro XTL 
+                    // Solo usa si valida la tendencia para buscar gatillo
+                    if (   //($retroceso >= 0.382 && $relacionVelas <= 1) ||
+                        $this->flBuscaVelaQuiebreInertia)
                     {
                         $this->acumFlBuscaEntrada = true;
 
@@ -2040,6 +2201,86 @@ class IndicadoresService
         }
     }
 
+    // Modificacion para nuevo calulo filtro por XTL 09/03/2025
+    private function traeUltimoXTL($offset, $op)
+    {
+        $offsetUltimoXTL = -1;
+        $pesoXTL = 0;
+        for ($o = $offset; $o >= 0 && $offsetUltimoXTL == -1; $o--)
+        {
+            if (($op == 'BAJISTA' ? $this->datas[$o]['estado'] == 'rojo' :
+                $this->datas[$o]['estado'] == 'verde') && 
+                $this->datas[$o]['pesoXTL'] != 0)
+            {
+                $pesoXTL = $this->datas[$o]['pesoXTL'];
+                $offsetUltimoXTL = $o;
+            }
+        }
+        return ['peso' => $pesoXTL, 'offset' => $offsetUltimoXTL];
+    }
+
+    // Modificacion para nuevo calulo filtro por XTL 09/03/2025
+    // Trae el XTL anterior
+    private function traeXTLAnterior($offset, $op)
+    {
+        $offsetUltimoXTL = -1;
+        switch($op)
+        {
+        case 'BAJISTA':
+            $estadoXTL = 'rojo';
+            break;
+        case 'ALCISTA':
+            $estadoXTL = 'verde';
+            break;
+        }
+        // Busca el XTL anterior
+        $estadoXTLAnterior = '';
+        for ($o = $offset; $o >= 0; $o--)
+        {
+            if ($this->datas[$o]['estado'] != $estadoXTL)
+            {
+                if ($this->datas[$o]['estado'] != 'neutral')
+                {
+                    $estadoXTLAnterior = $this->datas[$o]['estado'];
+                    break;
+                }
+            }
+        }
+
+        // Si el XTL anterior que no sea neutral coincide con el original devuelve offset
+        if ($estadoXTLAnterior == $estadoXTL)
+            $offsetUltimoXTL = $o;
+
+        return ['offset' => $offsetUltimoXTL];
+    }
+
+    // Modificacion para nuevo calulo filtro por XTL 10/03/2025
+    // Verifica si el XTL tiene candidatos
+    private function verificaCandidatoXTL($offset, $estado)
+    {
+        $flTieneCandidato = true;
+        if ($offset != -1)
+        {
+            $estadoActual = $this->datas[$offset]['estado'];
+            $flTieneCandidato = false;
+
+            // Siempre calcula si el estado del XTL anterior es el mismo al actual
+            if ($estadoActual == $estado)
+            {
+                for ($o = $offset; $o >= 0 && $estadoActual == $this->datas[$offset]['estado'] &&
+                    !$flTieneCandidato; $o--)
+                {
+                    if ($estadoActual == 'rojo' ? $this->datas[$o]['provMax'] != 0. :
+                        $this->datas[$o]['provMin'] != 0.)
+                        $flTieneCandidato = true;
+                }
+            }
+            //dd($offset.' '.$flTieneCandidato.' '.$this->datas[$offset]['close']);
+        }
+
+        return $flTieneCandidato;
+    }
+    
     private function calculaFiltros($i, $op)
     {
         if (self::calculaW4($i, $op, true))
@@ -2170,6 +2411,9 @@ class IndicadoresService
             if ($this->operaciones[$j]['idTrade'] == $idTrade)
                 $off = $j;
         }
+        if ($off == -1)
+            return;
+
         // Configura direccion en funcion de como esta el trade actual
         $flAlcista = $flBajista = false;
         if ($this->operaciones[$off]['direccion'] == 1)
@@ -3876,6 +4120,8 @@ class IndicadoresService
             'TQRRojo'=>$TQRRojo,
             'stopTQRRojo'=>$stopTQRRojo,
             'tgtTQRRojo'=>$tgtTQRRojo,
+            // Modificacion peso XTL 01/03/2025
+            'pesoXTL'=>0,
             'provMin'=>0,
             'provMax'=>0,
             'provRet'=>0,
@@ -3935,8 +4181,6 @@ class IndicadoresService
                 if ($this->operaciones[$j]['idTrade'] == $idTrade)
                     $off = $j;
             }
-            if ($off == -1)
-                return;
             $totalTicks = $this->operaciones[$off]['acumTicks'];
             $plPesos = 0;
 
@@ -4000,10 +4244,10 @@ class IndicadoresService
             // Si es batch envia correo de apertura de posicion
             if ($this->flBatch)
             {
-                //$receivers = "sergiogranucci@gmail.com";
+                $receivers = "sergiogranucci@gmail.com";
 
-                //Mail::to($receivers)->send(new Trade($this->operaciones[$off]));
-                Log::info($this->operaciones[$off]);
+                Mail::to($receivers)->send(new Trade($this->operaciones[$off]));
+                //Log::info($this->operaciones[$off]);
             }
         }
         else
@@ -4018,7 +4262,7 @@ class IndicadoresService
                     $maximo == $this->operaciones[$idTrade-2]['max'] &&
                     $offMin == $this->operaciones[$idTrade-2]['offmin'] &&
                     $offMax == $this->operaciones[$idTrade-2]['offmax'])
-                    return 'Error';
+                    return 'ERROR';
             }
 
             $fechaLectura = date('Y-m-d', ceil($fecha/1000));
@@ -4063,16 +4307,13 @@ class IndicadoresService
             ];
             $this->operaciones[] = $dataOperacion;
 
-            //if ($idTrade == 7)
-              //  dd($this->operaciones);
-
             // Si es batch envia correo de apertura de posicion
             if ($this->flBatch)
             {
-                //$receivers = "sergiogranucci@gmail.com";
+                $receivers = "sergiogranucci@gmail.com";
 
-                //Mail::to($receivers)->send(new Trade($dataOperacion));
-                Log::info($dataOperacion);
+                Mail::to($receivers)->send(new Trade($dataOperacion));
+                //Log::info($dataOperacion);
             }
         }
         return 0;
@@ -4188,7 +4429,7 @@ class IndicadoresService
         $this->k2 = 2 / ($this->mmCorta + $this->mmLarga);
         $this->k1 = 1 - $this->k2;
         $this->flBatch = true;
-        $this->flSinFiltros = false;
+        $this->flSinFiltros = true;
         // Saltea fechas repetidas
         if ($this->acumFechaLectura != "01-01-2001")
         {
@@ -4252,22 +4493,26 @@ class IndicadoresService
 
                 if ($this->acumItem > 1)
                 {
-                    if ($this->datas[$this->acumItem-2]['nuevo'])
-                    {
-                        if ($this->acumItem >= $this->mmLarga + 1)
-                            $this->calculaEWO($this->acumItem, $base, $smac, $smal, $ewo, $bandaSup, $bandaInf,
-                                $w4Up1, $w4Up2, $w4Dw1, $w4Dw2);
+                    if ($this->acumItem >= $this->mmLarga + 1)
+                        $this->calculaEWO($this->acumItem, $base, $smac, $smal, $ewo, $bandaSup, $bandaInf,
+                            $w4Up1, $w4Up2, $w4Dw1, $w4Dw2);
 
-                        // Calcula pivot de fibonacci
-                        $this->calculaFibonacci($this->acumFechaInicioRango, $rfLim, $rfeExt, $rfeInt, $rfiExt, $rfiInt, $pp1,
-                            $poc, $pp2, $sfiInt, $sfiExt, $sfeInt, $sfeExt, $sfLim, $base);
+                    // Calcula pivot de fibonacci
+                    $this->calculaFibonacci($this->acumFechaInicioRango, $rfLim, $rfeExt, $rfeInt, $rfiExt, $rfiInt, $pp1,
+                        $poc, $pp2, $sfiInt, $sfiExt, $sfeInt, $sfeExt, $sfLim, $base);
 
-                        // Calcula CCI
-                        $this->CalculaCCI($this->acumItem, $this->acumHigh, $this->acumLow, $this->acumClose, $precioTipico, 
-                            $SMACCI, $auxCCI, $blanco1, $blanco2, $CCI);
-                    }
+                    // Calcula CCI
+                    $this->CalculaCCI($this->acumItem, $this->acumHigh, $this->acumLow, $this->acumClose, $precioTipico, 
+                        $SMACCI, $auxCCI, $blanco1, $blanco2, $CCI);
+                    
+                    // Modificacion para calcular XTL 01/03/2025
+                    // Calcula XTL
+                    $this->CalculaXTL($this->acumitem, $this->acumHigh, $this->acumLow, $this->acumClose, $precioTipico, 
+                                    $SMAXTL, $auxXTL, $CCIXTL, $estado, $rango, 
+                                    $TQRVerde, $stopTQRVerde, $tgtTQRVerde,
+                                    $TQRRojo, $stopTQRRojo, $tgtTQRRojo);
                 }
-                if ($this->acumItem > 2 && $this->datas[$this->acumItem-2]['nuevo'] && $this->datas[$this->acumItem-3]['nuevo'])
+                if ($this->acumItem > 2)
                     $this->calculaNuevosIndicadores($this->acumItem-1);
 
                 // Arma tabla 
@@ -4296,12 +4541,20 @@ class IndicadoresService
                 }    
 
                 // Graba tabla 
-                if ($this->acumItem > 500)
+                if ($this->acumItem > 1000)
                 {
-                    $this->grabaTablaIndicadores();
+                    array_shift($this->datas);
+                    $this->acumItem--;
+                    $this->acumBnMaximo--;
+                    $this->acumBnMinimo--;
+                    $this->acumBnMinActual--;
+                    $this->acumBnMaxActual--;
+                    $this->OffAbrePosicion--;
+
+                    //$this->grabaTablaIndicadores();
 
                     // Trae ultimos 100 registros
-                    $this->cargaIndicadores();
+                    //$this->cargaIndicadores();
                 }
                 $this->acumCantLectura = 0;
                 $this->acumLow = $this->acumHigh = $this->acumTotVolume = $this->acumOpen = $this->acumClose = 0;
@@ -4367,7 +4620,11 @@ class IndicadoresService
                                         $rfeint, $rfeext, $rfiint, $rfiext, $pp1, $pp2, $sfiext, $sfiint, $sfeext, $sfeint, 
                                         $swingbars, $preciotipico, $p, $evento, $t1, $t2, $t3, $t4, $stoploss, $entrada, $e)
     {
-        $datas[] = ['fecha' => $fecha, 
+        $data = DB::connection('trade')->table('trade.indicadores')->where('chartTime', $fechastr)->get();
+
+        if (count($data) == 0)
+        {
+            $datas[] = ['fecha' => $fecha, 
                     'hora' => $hora, 
                     'especie' => $especie, 
                     'chartTime' => $fechastr,
@@ -4421,8 +4678,9 @@ class IndicadoresService
                     'entrada' => $entrada,
                     'e' => $e];
 
-        $data = DB::connection('trade')->table('trade.indicadores')->insert($datas);
-            
+            $data = DB::connection('trade')->table('trade.indicadores')->insert($datas);
+        }
+
         return $data;
     }
 
@@ -4803,7 +5061,9 @@ class IndicadoresService
             $this->datas[$offset-1]['rvil'] = 100 * $this->datas[$offset-1]['l1Exp']/($this->datas[$offset-1]['l1Exp']+$this->datas[$offset-1]['l2Exp']);
 
         $this->datas[$offset-1]['rviSimple'] = ($this->datas[$offset-1]['rvih0'] + $this->datas[$offset-1]['rvil0']) / 2;
-        $this->datas[$offset-1]['rviExp'] = ($this->datas[$offset-1]['rvih'] + $this->datas[$offset-1]['rvil']) / 2;
+
+        // Modificacion calculo inertia 01/03/2025
+        $this->datas[$offset-1]['rviExp'] = ($this->datas[$offset-1]['high'] + $this->datas[$offset-1]['low']) / 2;
 
         $this->datas[$offset-1]['x'] = $offset;
 
@@ -4822,12 +5082,13 @@ class IndicadoresService
                 }
             }
 
-            $this->datas[$offset-1]['a'] = (20 * $sumaProducto - $sumaX * $sumaExp) / ((20 * $sumaX2)-($sumaX * $sumaX));
-            $this->datas[$offset-1]['b'] = ($sumaX2*$sumaExp-$sumaX*$sumaProducto) / ((20*$sumaX2)-($sumaX*$sumaX));
+            if (((20 * $sumaX2)-($sumaX * $sumaX)) != 0)
+            {
+                $this->datas[$offset-1]['a'] = (20 * $sumaProducto - $sumaX * $sumaExp) / ((20 * $sumaX2)-($sumaX * $sumaX));
+                $this->datas[$offset-1]['b'] = ($sumaX2*$sumaExp-$sumaX*$sumaProducto) / ((20*$sumaX2)-($sumaX*$sumaX));
+            }
         }
 
-        $this->datas[$offset-1]['yaxb'] = $this->datas[$offset-1]['a'] * $this->datas[$offset-1]['x'] + $this->datas[$offset-1]['b'];
-
-        $this->datas[$offset-1]['inertia'] = $this->datas[$offset-1]['yaxb'] - 50;
+        $this->datas[$offset-1]['inertia'] = $this->datas[$offset-1]['a'] * $this->datas[$offset-1]['x'] + $this->datas[$offset-1]['b'];
     }
 }

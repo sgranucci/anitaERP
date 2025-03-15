@@ -775,8 +775,8 @@ class FacturacionService
 									$venta, $dataCAE, $conceptosTotales, $cuentacorriente, $dataFactura, $signo,
 									$cuentaVenta, $this->codigoCuentaContable, true);
 
-						if ($anita == 'Error')
-							throw new Exception('Error en grabacion anita.');
+						if (strpos($anita, 'Error') !== false)
+							throw new Exception($anita);
 
 						if ($anita == 'Errvend')
 							throw new Exception('No tiene vendedor asignado.');
@@ -813,7 +813,7 @@ class FacturacionService
 									date('Ymd', strtotime($cae['fechavencimientocae'])));
 
 						if (strpos($vencae, 'Error') !== false)
-							return 'Error';
+							return 'Error vencae';
 					}
 
 					return ['factura' => $numero, 'error' => ''];
@@ -1050,8 +1050,8 @@ class FacturacionService
 							$venta, $dataCAE, $conceptosTotales, $cuentacorriente, $dataFactura, $signo,
 							$cuentaVenta, $this->codigoCuentaContable, true);
 
-				if ($anita == 'Error')
-					throw new Exception('Error en grabacion anita.');
+				if (strpos($anita, 'Error') !== false)
+					throw new Exception($anita);
 
 				if ($anita == 'Errvend')
 					throw new Exception('No tiene vendedor asignado.');
@@ -1145,13 +1145,13 @@ class FacturacionService
 			$subzonavta_id = $cliente->subzonavta_id;
 			$codigopostal = $cliente->codigopostal;
 			$nroinscripcion = $cliente->nroinscripcion;
-			$nombre = $cliente->nombre;
+			$nombre = preg_replace('([^A-Za-z0-9 ])', '', $cliente->nombre);
 			$domicilio = $cliente->domicilio;
 		}
 		else
 		{
 			if (isset($venta['nombrecliente']))
-				$nombre = $venta['nombrecliente'];
+				$nombre = preg_replace('([^A-Za-z0-9 ])', '', $venta['nombrecliente']);
 		
 			if (isset($venta['documentocliente']))
 				$domicilio = $nroinscripcion = $venta['documentocliente'];
@@ -1273,10 +1273,11 @@ class FacturacionService
 							'".'0'."'
 							"
 					);
-        $vta = $apiAnita->apiCall($data);
 
-		if (strpos($vta, 'Error') !== false)
-			return 'Error';
+			$vta = $apiAnita->apiCall($data);
+
+			if (strpos($vta, 'Error') !== false)
+				return 'Error grabación venta anita';
 
 		// Graba venibr
 		foreach ($conceptostotales as $concepto)
@@ -1303,10 +1304,10 @@ class FacturacionService
 								"
 						);
 						
-				$venibr = $apiAnita->apiCall($data);
+					$venibr = $apiAnita->apiCall($data);
 
-				if (strpos($venibr, 'Error') !== false)
-					return 'Error';
+					if (strpos($venibr, 'Error') !== false)
+						return 'Error venibr';
 			}
 		}
 		
@@ -1346,10 +1347,11 @@ class FacturacionService
 								'".'I'."'
 							"
 					);
-			$climov = $apiAnita->apiCall($data);
 
-			if (strpos($climov, 'Error') !== false)
-				return 'Error';
+				$climov = $apiAnita->apiCall($data);
+
+				if (strpos($climov, 'Error') !== false)
+					return 'Error climov';
 		}
 		
 		// Lee el transporte
@@ -1407,10 +1409,10 @@ class FacturacionService
 							'".$puntoventaremito."'
 						"
 					);
-		$comprob = $apiAnita->apiCall($data);
+			$comprob = $apiAnita->apiCall($data);
 
-		if (strpos($comprob, 'Error') !== false)
-			return 'Error';
+			if (strpos($comprob, 'Error') !== false)
+				return 'Error comprob';
 			
 		// Agrupa por medida / partida para anita
 		$dataItem = [];
@@ -1499,10 +1501,10 @@ class FacturacionService
 								'".$medida['despacho']."'
 								"
 					);
-			$compaux = $apiAnita->apiCall($data);
-			
-			if (strpos($compaux, 'Error') !== false)
-				return 'Error';
+				$compaux = $apiAnita->apiCall($data);
+				
+				if (strpos($compaux, 'Error') !== false)
+					return 'Error compaux';
 				
 			// Graba stkmov
 			$apiAnita = new ApiAnita();
@@ -1592,7 +1594,7 @@ class FacturacionService
 
 				$stkmov = $apiAnita->apiCall($data);
 				if (strpos($stkmov, 'Error') !== false)
-					return 'Error';
+					return 'Error stkmov';
 
 				// Graba stkvmed
 				$data = array( 	'tabla' => 'stkvmed', 
@@ -1637,7 +1639,7 @@ class FacturacionService
 
 				$stkvmed = $apiAnita->apiCall($data);
 				if (strpos($stkvmed, 'Error') !== false)
-					return 'Error';
+					return 'Error stkvmed';
 			}
 		}
 		// Graba leyenda de exportacion
@@ -1666,10 +1668,10 @@ class FacturacionService
 									'".$renglon."'
 									"
 						);
-				$compley = $apiAnita->apiCall($data);
+					$compley = $apiAnita->apiCall($data);
 
-				if (strpos($compley, 'Error') !== false)
-					return 'Error';
+					if (strpos($compley, 'Error') !== false)
+						return 'Error compley';
 			}
 		}
 
@@ -1685,6 +1687,7 @@ class FacturacionService
 		// Graba subdiario
 		$apiAnita = new ApiAnita();
 		$data = array( 	'tabla' => 'subdiario', 
+						'sistema' => 'contab',
 						'acc' => 'insert',
 						'campos' => ' 
 									subd_sistema, subd_fecha, subd_tipo, subd_letra, subd_sucursal, subd_nro,
@@ -1723,10 +1726,9 @@ class FacturacionService
 									'".'0'."'
 									"
 					);
-
-		$subdiario = $apiAnita->apiCall($data);
-		if (strpos($subdiario, 'Error') !== false)
-			return 'Error';
+			$subdiario = $apiAnita->apiCall($data);
+			if (strpos($subdiario, 'Error') !== false)
+				return 'Error subdiario';
 			
 		// Barre por cada impuesto para grabar asiento contable
 		foreach ($conceptostotales as $conc)
@@ -1766,6 +1768,7 @@ class FacturacionService
 
 					$data = array( 	'tabla' => 'subdiario', 
 							'acc' => 'insert',
+							'sistema' => 'contab',
 							'campos' => ' 
 										subd_sistema, subd_fecha, subd_tipo, subd_letra, subd_sucursal, subd_nro,
 										subd_emisor, subd_tipo_mov, subd_cuenta, subd_contrapartida,
@@ -1803,21 +1806,21 @@ class FacturacionService
 							'".'0'."'
 							"
 					);
-					$subdiario = $apiAnita->apiCall($data);
+						$subdiario = $apiAnita->apiCall($data);
 
-					if (strpos($subdiario, 'Error') !== false)
-						return 'Error';
+						if (strpos($subdiario, 'Error') !== false)
+							return 'Error subdiario';
 				}
 			}
 		}
 
 		// Numera la factura
 		if ($this->ventaRepository->numeraAnita(substr($venta['codigo'], 0, 3), $letra, $puntoventa) == 'Error')
-			return 'Error';
+			return 'Error numerador factura';
 
 		// Numera el remito
 		if ($this->ventaRepository->numeraAnita('REM', 'R', $puntoventaremito) == 'Error')
-			return 'Error';
+			return 'Error numerador remito';
 
 		return 'Success';
 	}
@@ -1892,7 +1895,7 @@ class FacturacionService
 	}
 
 	// Borra factura en Anita
-	public function borraAnita($tipo, $letra, $puntoventa, $numero)
+	public function borraAnita($tipo, $letra, $puntoventa, $numero, $servidor = null, $ifx_server = null)
 	{
         $apiAnita = new ApiAnita();
         $data = array( 'acc' => 'delete', 
@@ -1972,6 +1975,13 @@ class FacturacionService
 												stkv_sucursal = '".$puntoventa."' AND
 												stkv_nro = '".$numero."'
 						" );
+
+		if ($servidor != null)
+		{
+			$data['servidor'] = $servidor;
+			$data['ifx_server'] = $ifx_server;
+		}
+		
         $apiAnita->apiCall($data);
 
 		$apiAnita = new ApiAnita();
@@ -1982,11 +1992,19 @@ class FacturacionService
 												stkvm_sucursal = '".$puntoventa."' AND
 												stkvm_nro = '".$numero."'
 						" );
+						
+		if ($servidor != null)
+		{
+			$data['servidor'] = $servidor;
+			$data['ifx_server'] = $ifx_server;
+		}
+								
         $apiAnita->apiCall($data);
 
 		$apiAnita = new ApiAnita();
         $data = array( 'acc' => 'delete', 
 						'tabla' => 'subdiario', 
+						'sistema' => 'contab',
 						'whereArmado' => " WHERE subd_sistema='V' AND subd_tipo = '".$tipo."' AND
 												subd_letra = '".$letra."' AND
 												subd_sucursal = '".$puntoventa."' AND
@@ -2019,7 +2037,7 @@ class FacturacionService
 		$vencae = $apiAnita->apiCall($data);
 
 		if (strpos($vencae, 'Error') !== false)
-			return 'Error';
+			return 'Error vencae';
 
 		return 'Success';
 	}
@@ -2027,7 +2045,7 @@ class FacturacionService
 	public function leeFactura($id)
 	{
 		// Lee venta
-		$venta = $ventaRepository->find($id);
+		$venta = $this->ventaRepository->find($id);
 
 		// Lee items
 	}

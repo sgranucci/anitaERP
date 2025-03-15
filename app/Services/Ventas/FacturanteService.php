@@ -60,11 +60,12 @@ class FacturanteService
 		);
 
 		$request = array("request" => $parametros);
-
 		$this->client = $this->_client();
 		try {
-		  $result = $this->client->ListadoComprobantesFull($request);
-		  return($result->ListadoComprobantesFullResult->ListadoComprobantes->Comprobante);
+			//ini_set("default_socket_timeout", -1);
+			$result = $this->client->ListadoComprobantesFull($request);
+
+		  	return($result->ListadoComprobantesFullResult->ListadoComprobantes->Comprobante);
 		}
 		catch (\Exception $e) {
 		 	Log::info('Caught Exception :'. $e->getMessage());
@@ -75,12 +76,22 @@ class FacturanteService
 	private function _client() 
 	{
 		$wsdl = "http://www.facturante.com/api/comprobantes.svc?wsdl";
+
+		$options = [
+			//'cache_wsdl' => WSDL_CACHE_NONE,
+			//'encoding' => 'UTF-8',
+			//'soap_version' => SOAP_1_2,
+			//'trace' => 1,
+			//'exceptions' => 1,
+			//'connection_timeout' => 600,
+		];
 		try {
-		  $this->client = new \SoapClient($wsdl);
-		return $this->client;
+			//ini_set("default_socket_timeout", -1);
+		  	$this->client = new \SoapClient($wsdl);//,$options);
+			return $this->client;
 		}
 		catch ( \Exception $e) {
-		  Log::info('Caught Exception in client'. $e->getMessage());
+		  	Log::info('Caught Exception in client'. $e->getMessage());
 		}
 	}
 
@@ -239,18 +250,18 @@ class FacturanteService
 
 		$cae['cae'] = $numeroCae;
 		$cae['fechavencimientocae'] = $fechavencimientocae;
-		//try {
+		try {
 			$anita = $this->facturacionService->grabaAnita($puntoVenta, $letra, 0, 0,
 							$venta, $dataCAE, $conceptosTotales, $cuentacorriente, $dataFactura, $signo, 
 							$cuentaVenta, $contrapartida, true,
 							'LOCAL_IP', 'IFX_SERVER_LOCAL');
 
-			if ($anita == 'Error')
-				throw new Exception('Error en grabacion anita.');
+			if (strpos($anita, 'Error') !== false)
+				throw new Exception($anita);
 
 			if ($anita == 'Errvend')
 				throw new Exception('No tiene vendedor asignado.');
-			
+
 			$fecha = Carbon::now();
 			$tipo = 'COC';
 			Self::grabaTesmov($cuentaFinanciera, $fechahora, $tipo, $letra, $puntoVenta, $numero, $total*$signo);
@@ -324,26 +335,31 @@ class FacturanteService
 			$subdiario = $apiAnita->apiCall($data);
 
 			if (strpos($subdiario, 'Error') !== false)
-				return 'Error';
+				throw new Exception('Error en grabacion anita subdiario.');
 
 			$vencae = $this->facturacionService->grabaVenCae(substr($venta['codigo'], 0, 3), $letra, 
 				$puntoVenta, $venta['numerocomprobante'], $cae['cae'], 
 				date('Ymd', strtotime($cae['fechavencimientocae'])));
-		//}
-		//catch ( \Exception $e) {
 
-			//Log::info('Error al generar factura TiendaNube '. $e->getMessage());
+			return ['error' => 'Success'];
+		}
+		catch ( \Exception $e) {
+
+			Log::info('Error al generar factura TiendaNube '. $e->getMessage());
 
 			// Borra factura de anita
-			//if ($venta['codigo'] ?? '')
-			//	$this->facturacionService->borraAnita(substr($venta['codigo'], 0, 3), $letra, 
-			//					$puntoVenta, $venta['numerocomprobante']);
-		//}
+			if ($tipoComprobante ?? '')
+				$this->facturacionService->borraAnita($tipoComprobante, $letra, $puntoVenta, $numero,
+						'LOCAL_IP', 'IFX_SERVER_LOCAL');
+
+			return ['error' => $e->getMessage()];
+		}
 	}
 
 	private function procesaUnItem($item, &$dataFactura)
 	{
-		if (isset($item->Detalle) ? $item->Detalle != "Descuentos y promociones" : true)
+		if (isset($item->Detalle) ? $item->Detalle != "Descuentos y promociones" &&
+			substr($item->Detalle, 0, 16) != "Descuento al IVA": true)
 		{
 			$impuesto_id = 3;
 			if (isset($item->IVA))

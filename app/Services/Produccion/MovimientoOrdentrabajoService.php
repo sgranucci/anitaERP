@@ -154,6 +154,20 @@ class MovimientoOrdentrabajoService
 						config('consprod.TAREA_TERMINADA_STOCK')))
 						throw new Exception("No puede grabar con OT ya terminada de Stock");
 
+					//if (count($ordentrabajo_tarea) > 0 && $ordentrabajo_tarea->contains('tarea_id',
+					//	config('consprod.TAREA_APARADO_ANOTADO')))
+					//{
+					//	$ordentrabajo_tarea_cortado = $this->ordentrabajo_tareaRepository
+					//									->findPorOrdentrabajoId($ordentrabajo->id, 
+					//									Config::get("consprod.TAREA_CORTADO"));
+						
+					//	if ($ordentrabajo_tarea_cortado)
+					//	{
+					//		if ($ordentrabajo_tarea_cortado->hastafecha == null)
+					//			throw new Exception("No puede grabar con OT sin terminar cortado");
+					//	}
+					//}
+
 					// Filtra tarea_id
 					$ordentrabajo_tarea_filtrada = $this->ordentrabajo_tareaRepository
 												->findPorOrdentrabajoId($ordentrabajo->id, $data['tarea_id']);
@@ -234,6 +248,29 @@ class MovimientoOrdentrabajoService
 
 								if ($item_tarea)
 									$dataTarea['ordentrabajo_tarea_id'] = $item_tarea->id;
+
+								// Si carga aparado busca aparado anotado y pone el fin
+								if ($data['tarea_id'] === Config::get("consprod.TAREA_APARADO"))
+								{
+									$ordentrabajo_tarea_anotado = $this->ordentrabajo_tareaRepository
+																	->findPorOrdentrabajoId($ordentrabajo->id, 
+																	Config::get("consprod.TAREA_APARADO_ANOTADO"));
+									if ($ordentrabajo_tarea_anotado)
+									{
+										$item_tarea = $this->ordentrabajo_tareaRepository->update([
+																					'hastafecha' => $dataTarea['desdefecha']
+																								], 
+																					$ordentrabajo_tarea_anotado[0]->id);
+
+										// Crea el movimiento de OT de cierre de aparado anotado
+										$dataTarea['tarea_id'] = Config::get("consprod.TAREA_APARADO_ANOTADO");
+
+										$movimientoordentrabajo = $this->movimientoordentrabajoRepository
+																		->create($dataTarea);
+
+										$dataTarea['tarea_id'] = Config::get("consprod.TAREA_APARADO");
+									}
+								}
 							}
 							else // Actualiza la tarea
 							{

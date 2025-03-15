@@ -31,7 +31,7 @@ class MovimientoStockRepository implements MovimientoStockRepositoryInterface
 
     public function all()
     {
-        $ret = $this->model->with('articulos_movimiento')->with('tipostransaccion')->with('mventas')->get();
+        $ret = $this->model->with('articulos_movimiento')->with('tipostransaccion')->with('mventas')->where('fecha','>','2024-06-00')->get();
 
         return $ret;
     }

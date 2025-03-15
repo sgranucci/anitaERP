@@ -910,4 +910,5 @@ Route::get('graficos/reporteindicadores', 'Graficos\GraficosController@indexRepo
 Route::post('graficos/crearindicadores', 'Graficos\GraficosController@crearReporteIndicadores')->name('crear_repindicadores');
 Route::get('graficos/ordenes', 'Graficos\GraficosController@indexGeneraOrdenes')->name('ordenes');
 Route::post('graficos/generaordenes', 'Graficos\GraficosController@generaOrdenes')->name('genera_ordenes');
+Route::get('graficos/batch', 'Graficos\GraficosController@batch')->name('estado_batch');
 

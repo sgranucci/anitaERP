@@ -458,7 +458,7 @@ class ArticuloController extends Controller
 		// Envia correo de alta del articulo a Laura 
 		$receivers = "laura@ferli.com.ar";
 
-        Mail::to($receivers)->send(new AltaArticulo($request->all()));
+        Mail::to($receivers)->send(new AltaArticulo($request->all(), $request->mventa_id, $request->linea_id));
 
         return redirect()->route('products.index')->with('status', 'Producto creado');
     }

@@ -191,7 +191,10 @@ class OrdentrabajoQuery implements OrdentrabajoQueryInterface
 			->join('articulo_caja', 'articulo_caja.articulo_id', 'pedido_combinacion.articulo_id')
 			->join('caja', 'caja.id', 'articulo_caja.caja_id')
 			->join('articulo', 'articulo.id', 'caja.articulo_id')
-			->whereIn('ordentrabajo_combinacion_talle.ordentrabajo_stock_id', [0, null]);
+			->where(function ($query) {
+				$query->where('ordentrabajo_combinacion_talle.ordentrabajo_stock_id', '0')
+					->orWhereNull('ordentrabajo_combinacion_talle.ordentrabajo_stock_id');
+			});
 
 		if ($ordenestrabajo != '')
 		{
