@@ -178,7 +178,7 @@ class OrdentrabajoQuery implements OrdentrabajoQueryInterface
 				'talle.nombre as nombretalle',
 				'pedido_combinacion_talle.cantidad as cantidadportalle',
 				'articulo_caja.caja_id as caja_id',
-				'caja.nombre as nombrecaja',
+				'cajaproducto.nombre as nombrecaja',
 				'articulo_caja.desdenro as desdenumero',
 				'articulo_caja.hastanro as hastanumero',
 				'articulo.descripcion as nombrearticulocaja')
@@ -189,8 +189,8 @@ class OrdentrabajoQuery implements OrdentrabajoQueryInterface
 			->join('cliente', 'cliente.id', 'pedido.cliente_id')
 			->join('talle', 'talle.id', '=', 'pedido_combinacion_talle.talle_id')
 			->join('articulo_caja', 'articulo_caja.articulo_id', 'pedido_combinacion.articulo_id')
-			->join('caja', 'caja.id', 'articulo_caja.caja_id')
-			->join('articulo', 'articulo.id', 'caja.articulo_id')
+			->join('cajaproducto', 'cajaproducto.id', 'articulo_caja.caja_id')
+			->join('articulo', 'articulo.id', 'cajaproducto.articulo_id')
 			->where(function ($query) {
 				$query->where('ordentrabajo_combinacion_talle.ordentrabajo_stock_id', '0')
 					->orWhereNull('ordentrabajo_combinacion_talle.ordentrabajo_stock_id');
@@ -206,7 +206,7 @@ class OrdentrabajoQuery implements OrdentrabajoQueryInterface
 			$data = $data->whereBetween('ordentrabajo.fecha', [$desdefecha, $hastafecha]);
 		}
 
-		$data = $data->orderBy('caja.nombre')->get();
+		$data = $data->orderBy('cajaproducto.nombre')->get();
 
 		return $data;
 	}

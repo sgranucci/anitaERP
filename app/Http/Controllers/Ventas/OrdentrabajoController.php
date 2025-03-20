@@ -14,6 +14,7 @@ use App\Repositories\Ventas\PuntoventaRepositoryInterface;
 use App\Repositories\Ventas\TipotransaccionRepositoryInterface;
 use App\Repositories\Ventas\IncotermRepositoryInterface;
 use App\Repositories\Ventas\FormapagoRepositoryInterface;
+use App\Repositories\Ventas\TransporteRepositoryInterface;
 use App\Models\Stock\Mventa;
 use App\Models\Stock\Talle;
 use App\Models\Stock\Combinacion;
@@ -30,6 +31,7 @@ class OrdentrabajoController extends Controller
 	private $tipotransaccionRepository;
 	private $incotermRepository;
 	private $formpagoRepository;
+	private $transporteRepository;
 
     public function __construct(
     	OrdentrabajoService $ordentrabajoservice,
@@ -39,7 +41,8 @@ class OrdentrabajoController extends Controller
 		PuntoventaRepositoryInterface $puntoventarepository,
 		TipotransaccionRepositoryInterface $tipotransaccionrepository,
 		IncotermRepositoryInterface $incotermrepository,
-		FormapagoRepositoryInterface $formpagorepository)
+		FormapagoRepositoryInterface $formpagorepository,
+		TransporteRepositoryInterface $transporterepository)
 	{
         $this->middleware('auth');
 
@@ -51,6 +54,7 @@ class OrdentrabajoController extends Controller
 		$this->tipotransaccionRepository = $tipotransaccionrepository;
 		$this->incotermRepository = $incotermrepository;
 		$this->formapagoRepository = $formpagorepository;
+		$this->transporteRepository = $transporterepository;
 	}
 
     public function index(Request $request)
@@ -336,9 +340,10 @@ class OrdentrabajoController extends Controller
 		$this->armarTablasVista($cliente_query, $mventa_query, $articulo_query, $combinacion_query, $talle_query, $tarea_query, $ordentrabajo, 
 								$mventa_id, $articulo_id, $combinacion_id, $puntoventa_query,
 								$tipotransaccion_query, $formapago_query,
-								$incoterm_query);
+								$incoterm_query, $transporte_query);
 
 		$data = [];
+		$transporte_id = 0;
 		foreach ($ordentrabajo->ordentrabajo_combinacion_talles as $ot)
 		{
 			$item = $ot->pedido_combinacion_talles->pedidos_combinacion;
@@ -386,7 +391,8 @@ class OrdentrabajoController extends Controller
 						'nombre_combinacion'=>$combinacion->nombre,
 						'medidas' => [$medidas],
 						];
-						
+				
+				$transporte_id = $item->pedidos->transporte_id;
 			}
 			else
 			{
@@ -401,10 +407,10 @@ class OrdentrabajoController extends Controller
 		return view('ventas.ordentrabajo.editar', compact('ordentrabajo', 'cliente_query', 'articulo_query', 
 														'combinacion_query', 'mventa_query', 'talle_query', 
 														'tarea_query', 'mventa_id', 'articulo_id', 'combinacion_id', 
-														'puntoventa_query', 'puntoventadefault_id', 
+														'puntoventa_query', 'puntoventadefault_id', 'transporte_id',
 														'tipotransaccion_query', 'tipotransacciondefault_id',
 														'data', 'puntoventaremitodefault_id',
-														'formapago_query', 'incoterm_query'));
+														'formapago_query', 'incoterm_query', 'transporte_query'));
     }
 
     /**
@@ -491,7 +497,7 @@ class OrdentrabajoController extends Controller
 	private function armarTablasVista(&$cliente_query, &$mventa_query, &$articulo_query, &$combinacion_query, &$talle_query, &$tarea_query,
 										$ordentrabajo, &$mventa_id, &$articulo_id, &$combinacion_id,
 										&$puntoventa_query, &$tipotransaccion_query,
-										&$formapago_query, &$incoterm_query)
+										&$formapago_query, &$incoterm_query, &$transporte_query)
 	{
 		$cliente_query = $this->clienteQuery->allQueryporEstado(['id','nombre','codigo'], '0');//Cliente::$enumEstado['activo']);
 		$mventa_query = Mventa::all();
@@ -502,6 +508,7 @@ class OrdentrabajoController extends Controller
 		$puntoventa_query = $this->puntoventaRepository->all('A');
 		$tipotransaccion_query = $this->tipotransaccionRepository->all(['V','C'], ['A']);
 		$formapago_query = $this->formapagoRepository->all();
+		$transporte_query = $this->transporteRepository->all();
 		$incoterm_query = $this->incotermRepository->all();
 			
 		if ($ordentrabajo->ordentrabajo_combinacion_talles[0]->pedido_combinacion_talles)

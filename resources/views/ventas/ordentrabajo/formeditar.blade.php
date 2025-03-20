@@ -1,9 +1,10 @@
 <div class="row">
-	<div class="col-sm-6" id="datosfactura" data-puntoventa="{{$puntoventa_query}}" data-tipotransaccion="{{$tipotransaccion_query}}" data-incoterm="{{$incoterm_query}}" data-formapago="{{$formapago_query}}">
+	<div class="col-sm-6" id="datosfactura" data-puntoventa="{{$puntoventa_query}}" data-tipotransaccion="{{$tipotransaccion_query}}" data-incoterm="{{$incoterm_query}}" data-formapago="{{$formapago_query}}" data-transporte="{{$transporte_query}}">
         <input type="hidden" id="codigoordentrabajo" class="form-control" value="{{old('codigoordentrabajo', $ordentrabajo->codigo ?? '')}}" />
         <input type="hidden" id="ordentrabajo_id" class="form-control" value="{{old('ordentrabajo_id', $ordentrabajo->id ?? '')}}" />
 		<input type="hidden" id="puntoventadefault_id" class="form-control" value="{{$puntoventadefault_id}}" />
 		<input type="hidden" id="puntoventaremitodefault_id" class="form-control" value="{{$puntoventaremitodefault_id}}" />
+		<input type="hidden" id="transportedefault_id" class="form-control" value="{{$transporte_id}}" />
 		<input type="hidden" id="tipotransacciondefault_id" class="form-control" value="{{$tipotransacciondefault_id}}" />
 		<input type="hidden" id="csrf_token" class="form-control" value="{{csrf_token()}}" />
 		<div class="form-group row" id="marca">

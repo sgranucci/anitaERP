@@ -99,7 +99,7 @@ class FacturacionService
 	protected $venta_exportacionRepository;
 	protected $tot_pares1, $tot_pares2, $tot_pares3, $tot_pares4;
 	protected $mventa_id;
-	protected $cantidadBulto, $puntoventaremito_id;
+	protected $cantidadBulto, $puntoventaremito_id, $transporte_id;
 	protected $formapago_id, $mercaderiaExportacion, $leyendaExportacion, $incoterm_id, $abreviaturaIncoterm;
 	protected $condicionVentaExportacion, $formaPagoExportacion, $monedaExportacion;
 	protected $descuentoPie, $descuentoLinea, $descuentoImportePie;
@@ -206,6 +206,12 @@ class FacturacionService
 		$this->cantidadBulto = $data['cantidadbulto'];
 		$this->puntoventaremito_id = $data['puntoventaremito_id'];
 		$this->formapago_id = $data['formapago_id'];
+
+		if (isset($data['transporte_id']))
+			$this->transporte_id = $data['transporte_id'];
+		else	
+			$this->transporte_id = 0;
+
 		$this->incoterm_id = $data['incoterm_id'];
 		$this->mercaderiaExportacion = $data['mercaderia'];
 		$this->leyendaExportacion = $data['leyendaexportacion'];
@@ -578,7 +584,7 @@ class FacturacionService
 						'cliente_id' => $cliente->id,
 						'condicionventa_id' => $pedido->condicionventa_id,
 						'vendedor_id' => $pedido->vendedor_id,
-						'transporte_id' => $pedido->transporte_id,
+						'transporte_id' => ($this->transporte_id > 0 ? $this->transporte_id : $pedido->transporte_id),
 						'total' => $totalComprobante * $signo,
 						'moneda_id' => $moneda_id,
 						'estado' => ' ',

@@ -54,6 +54,11 @@
                             <label for="recipient-name" class="col-lg-4 col-form-label">Cantidad de bultos</label>
                             <input type="number" id="cantidadbulto" name="cantidadbulto" value="0"></input>
                         </div>
+                        <div class="form-group row" id="div_transporte">
+                            <label for="recipient-name" class="col-lg-4 col-form-label requerido">Transporte</label>
+                            <select name="transporte_id" id="transporte_id" data-placeholder="Transporte" class="col-lg-5 form-control required" data-fouc>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">

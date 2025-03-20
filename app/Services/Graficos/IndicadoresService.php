@@ -1093,12 +1093,14 @@ class IndicadoresService
         $fechaActual = date('Y-m-d', ceil($this->datas[$i]['fecha']/1000));
         if ($fechaActual < "2023-03-12" || 
 			($fechaActual >= "2023-11-05" && $fechaActual < "2024-03-10") ||
-			($fechaActual >= "2024-11-03" && $fechaActual < "2025-03-10"))
+			($fechaActual >= "2024-11-03" && $fechaActual < "2025-03-10") ||
+            ($fechaActual >= "2025-11-03" && $fechaActual < "2026-13-10"))
             $flDayLight = true;
         else
         {
             if (($fechaActual >= "2023-03-12" && $fechaActual < "2023-11-05") ||
-                ($fechaActual >= "2024-03-10" && $fechaActual < "2024-11-03"))
+                ($fechaActual >= "2024-03-10" && $fechaActual < "2024-11-03") ||
+                ($fechaActual >= "2025-03-09" && $fechaActual < "2025-11-03"))
                 $flDayLight = false;
         }
 
@@ -1167,26 +1169,27 @@ class IndicadoresService
                                                                         $this->datas[$i]['close']);
 
                 // Si viene ganando mueve SL a BE + 1 o si no a ultimo minimo o maximo
-                if ($this->acumProfitAndLoss > 0)
-                {
-                    $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
+                // Modificacion para nuevo calculo XTL 18/3/25
+                //if ($this->acumProfitAndLoss > 0)
+                //{
+                //    $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
 
-                    if ($contratoActivo <= 2) // Si estoy en el 2do. contrato activo
-                    {
-                        $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e']; 
-                        $this->acumStopLoss = ($this->acumFlAcista ? 
-                                                $this->acumStopLoss + $this->ticker : $this->acumStopLoss - $this->ticker);
-                        $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con ganancia ".$this->acumProfitAndLoss." a BE";
-                    }
-                    else // Si no se mueve al target anterior
-                    {
-                        $this->acumStopLoss = $this->tgt[$contratoActivo-2];
-                        $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con ganancia ".$this->acumProfitAndLoss." a TGT ".$this->acumStopLoss;
-                    }
+                //    if ($contratoActivo <= 2) // Si estoy en el 2do. contrato activo
+                //    {
+                //        $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e']; 
+                //        $this->acumStopLoss = ($this->acumFlAcista ? 
+                //                                $this->acumStopLoss + $this->ticker : $this->acumStopLoss - $this->ticker);
+                //        $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con ganancia ".$this->acumProfitAndLoss." a BE";
+                //    }
+                //    else // Si no se mueve al target anterior
+                //    {
+                //        $this->acumStopLoss = $this->tgt[$contratoActivo-2];
+                //        $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con ganancia ".$this->acumProfitAndLoss." a TGT ".$this->acumStopLoss;
+                //    }
 
-                    $this->datas[$i]['stoploss'] = $this->acumStopLoss;
-                }
-                else
+                //    $this->datas[$i]['stoploss'] = $this->acumStopLoss;
+                //}
+                //else
                 {
                     // Busca ultimo minimo o maximo
                     if ($this->acumFlAcista)
@@ -5071,7 +5074,7 @@ class IndicadoresService
             
         if ($offset > 20)
         {
-            for ($i = $offset-1, $suma = $sumaX = $sumaProducto = $sumaExp = $sumaX2 = 0; $i >= $offset-20; $i--)
+            for ($i = $offset-1, $suma = $sumaX = $sumaProducto = $sumaExp = $sumaX2 = 0; $i >= $offset-21; $i--)
             {
                 if (isset($this->datas[$i]['rviExp']))
                 {
@@ -5082,13 +5085,16 @@ class IndicadoresService
                 }
             }
 
-            if (((20 * $sumaX2)-($sumaX * $sumaX)) != 0)
+            if (((21 * $sumaX2)-($sumaX * $sumaX)) != 0)
             {
-                $this->datas[$offset-1]['a'] = (20 * $sumaProducto - $sumaX * $sumaExp) / ((20 * $sumaX2)-($sumaX * $sumaX));
-                $this->datas[$offset-1]['b'] = ($sumaX2*$sumaExp-$sumaX*$sumaProducto) / ((20*$sumaX2)-($sumaX*$sumaX));
+                $this->datas[$offset-1]['a'] = (21 * $sumaProducto - $sumaX * $sumaExp) / ((21 * $sumaX2)-($sumaX * $sumaX));
+                $this->datas[$offset-1]['b'] = ($sumaX2*$sumaExp-$sumaX*$sumaProducto) / ((21*$sumaX2)-($sumaX*$sumaX));
             }
         }
-
+        
         $this->datas[$offset-1]['inertia'] = $this->datas[$offset-1]['a'] * $this->datas[$offset-1]['x'] + $this->datas[$offset-1]['b'];
+
+        //if ($offset == 135)
+        //    dd($this->datas[$offset-1]['inertia']);
     }
 }

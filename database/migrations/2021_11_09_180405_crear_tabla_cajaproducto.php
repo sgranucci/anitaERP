@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CrearTablaCaja extends Migration
+class CrearTablaCajaProducto extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class CrearTablaCaja extends Migration
      */
     public function up()
     {
-        Schema::create('caja', function (Blueprint $table) {
+        Schema::create('cajaproducto', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('nombre',50);
             $table->unsignedTinyInteger('desdenro');
@@ -33,6 +33,6 @@ class CrearTablaCaja extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('caja');
+        Schema::dropIfExists('cajaproducto');
     }
 }

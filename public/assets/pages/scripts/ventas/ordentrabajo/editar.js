@@ -199,6 +199,7 @@ $(document).on('shown.bs.modal', '#facturarOrdenTrabajoModal', function() {
     let selectPuntoVenta = $('#puntoventa_id');
     let selectPuntoVentaRemito = $('#puntoventaremito_id');
     let puntoVentaDefault = $('#puntoventadefault_id').val();
+    let transporteDefault = $('#transportedefault_id').val();
     let puntoVentaRemitoDefault = $('#puntoventaremitodefault_id').val();
     let sel_tipotransaccion = JSON.parse(document.querySelector('#datosfactura').dataset.tipotransaccion);
     let selectTipoTransaccion = $('#tipotransaccion_id');
@@ -216,6 +217,12 @@ $(document).on('shown.bs.modal', '#facturarOrdenTrabajoModal', function() {
         var selectFormapago = $('#formapago_id');
     }
 
+    if (document.querySelector('#datosfactura').dataset.transporte !== '')
+    {
+        var sel_transporte = JSON.parse(document.querySelector('#datosfactura').dataset.transporte);
+        var selectTransporte = $('#transporte_id');
+    }
+    
     const tiempoTranscurrido = Date.now();
     const hoy = new Date(tiempoTranscurrido);
 
@@ -282,6 +289,20 @@ $(document).on('shown.bs.modal', '#facturarOrdenTrabajoModal', function() {
         });
     }
 
+    // Arma select de transportes
+    if (document.querySelector('#datosfactura').dataset.transporte !== '')
+    {
+        selectTransporte.empty();
+        selectTransporte.append('<option value="">-- Seleccionar transporte --</option>');
+        $.each(sel_transporte, function(obj, item) {
+            if (transporteDefault == item.id)
+                op = 'selected="selected"';
+            else
+                op = '';
+            selectTransporte.append('<option value="' + item.id + '"'+op+'>' + item.codigo + '-' + item.nombre + '</option>');
+        });
+    }
+        
     let _cant = 1;
 
     if (modulo_actual != 1)
@@ -351,6 +372,7 @@ $('#aceptaFacturarOrdenTrabajoModal').on('click', function () {
     var cantidadbulto = $('#cantidadbulto').val();
     var puntoventaremito_id = $('#puntoventaremito_id').val();
     var formapago_id = $('#formapago_id').val();
+    var transporte_id = $('#transporte_id').val();
     var incoterm_id = $('#incoterm_id').val();
     var mercaderia = $('#mercaderia').val();
     var leyendaexportacion = $('#leyendaexportacion').val();
@@ -374,6 +396,7 @@ $('#aceptaFacturarOrdenTrabajoModal').on('click', function () {
                 cantidadbulto: cantidadbulto,
                 puntoventaremito_id: puntoventaremito_id,
                 formapago_id: formapago_id,
+                transporte_id: transporte_id,
                 incoterm_id: incoterm_id,
                 mercaderia: mercaderia,
                 leyendaexportacion: leyendaexportacion,
