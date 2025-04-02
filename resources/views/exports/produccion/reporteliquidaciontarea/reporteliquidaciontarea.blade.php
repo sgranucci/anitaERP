@@ -21,6 +21,7 @@
        	<th>Descripci&oacute;n Tarea</th>
        	<th>Fecha Inicio</th>
        	<th>Fecha Final</th>
+		<th>Hora Final</th>
        	<th>Art&iacute;culo</th>
 		<th>SKU</th>
        	<th>Combinaci&oacute;n</th>

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ValidacionCaja extends FormRequest
+class ValidacionCajaProducto extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,7 +24,7 @@ class ValidacionCaja extends FormRequest
     public function rules()
     {
         return [
-            'nombre' => 'required|max:50|unique:caja,nombre,' . $this->route('id'),
+            'nombre' => 'required|max:50|unique:cajaproducto,nombre,' . $this->route('id'),
             'desdenro' => 'required|',
             'hastanro' => 'required|',
         ];

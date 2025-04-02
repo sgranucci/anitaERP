@@ -5,8 +5,10 @@
 	<td>{{$data['nombretarea']}}</td>
     <td>{{date("d/m/Y", strtotime($data['desdefecha']))}}</td>
 	@if ($data['hastafecha'] != null)
-		<td>{{date("d/m/Y", strtotime($data['hastafecha']))}}</td>
+		<td>{{date("d/m/Y", strtotime($data['fechaactualizacion']))}}</td>
+		<td>{{date("h:i", strtotime($data['fechaactualizacion']))}}</td>
 	@else
+		<td></td>
 		<td></td>
 	@endif
 	<td>{{$data['nombrearticulo']}}</td>

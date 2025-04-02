@@ -1,6 +1,8 @@
 /node_modules
 /public/hot
-/public/storage
+/public/storage/archivos
+/public/storage/imagenes
+/public/storage/tmp
 /storage/*.key
 /storage/pdf
 /storage/framework/laravel-excel

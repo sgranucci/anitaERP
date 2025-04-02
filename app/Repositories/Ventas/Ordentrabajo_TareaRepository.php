@@ -228,6 +228,7 @@ class Ordentrabajo_TareaRepository implements Ordentrabajo_TareaRepositoryInterf
 						'pedido.codigo as numeropedido',
 						'ordentrabajo_tarea.desdefecha as desdefecha',
 						'ordentrabajo_tarea.hastafecha as hastafecha',
+						'ordentrabajo_tarea.updated_at as fechaactualizacion',
 						'articulo_costo.costo as costoporpar',
 						'pedido_combinacion_talle.pedido_combinacion_id',
 						'pedido_combinacion.cantidad as cantidad')

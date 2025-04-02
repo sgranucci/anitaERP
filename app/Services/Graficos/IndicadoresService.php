@@ -1190,32 +1190,32 @@ class IndicadoresService
                 //    $this->datas[$i]['stoploss'] = $this->acumStopLoss;
                 //}
                 //else
-                {
-                    // Busca ultimo minimo o maximo
-                    if ($this->acumFlAcista)
-                    {
-                        for ($r = $i; $r > 0 && $this->datas[$r]['min'] == 0; $r--)
-                        {
-                        }
-                        $nuevoStopLoss = $this->datas[$r]['min'];
-                    }
-                    else
-                    {
-                        for ($r = $i; $r > 0 && $this->datas[$r]['max'] == 0; $r--)
-                        {
-                        }
-                        $nuevoStopLoss = $this->datas[$r]['max'];
-                    }
-                    $this->acumStopLoss = $nuevoStopLoss;
-                    if ($this->acumFlAcista)
-                        $this->datas[$i]['stoploss'] = $this->acumStopLoss;
-                    else
-                        $this->datas[$i]['stoploss'] = $this->acumStopLoss;
+                //{
+                //    // Busca ultimo minimo o maximo
+                //    if ($this->acumFlAcista)
+                //    {
+                //        for ($r = $i; $r > 0 && $this->datas[$r]['min'] == 0; $r--)
+                //        {
+                //        }
+                //        $nuevoStopLoss = $this->datas[$r]['min'];
+                //    }
+                //    else
+                //    {
+                //        for ($r = $i; $r > 0 && $this->datas[$r]['max'] == 0; $r--)
+                //        {
+                //        }
+                //        $nuevoStopLoss = $this->datas[$r]['max'];
+                //    }
+                //    $this->acumStopLoss = $nuevoStopLoss;
+                //    if ($this->acumFlAcista)
+                //        $this->datas[$i]['stoploss'] = $this->acumStopLoss;
+                //    else
+                //        $this->datas[$i]['stoploss'] = $this->acumStopLoss;
 
-                    $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con perdida ".$this->acumProfitAndLoss." a ultimo ".
+                //    $this->datas[$i]['entrada'] .= "Mueve SL por señal contraria en posicion con perdida ".$this->acumProfitAndLoss." a ultimo ".
                                                     ($this->acumFlAcista?"minimo ":"maximo");
-                }
-                $this->datas[$i]['entrada'] .= " SL=".$this->datas[$i]['stoploss'];
+                //}
+                //$this->datas[$i]['entrada'] .= " SL=".$this->datas[$i]['stoploss'];
             }
 
             // controla administracion por tiempo
@@ -1277,24 +1277,27 @@ class IndicadoresService
                 }
             }
 
+            // Modificacion p/nuevo manejo de XTL 20/3/2025
             // Si esta en tgt hit y tiene mas contratos cambia el SL
-            if (substr($this->datas[$i]['evento'], 0, 7) == 'Tgt Hit' && $this->cantidadActivaContratos > 0 &&
-                $this->totalContratos > 1)
-            {
-                $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
-                if ($contratoActivo == 2) // Si estoy en el 2do. contrato activo
-                {
-                    $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e'];
-                    $this->acumStopLoss = ($this->acumFlAcista ? $this->acumStopLoss + $this->ticker : 
-                                            $this->acumStopLoss - $this->ticker);
-                }
-                else // Si no se mueve al target anterior
-                    $this->acumStopLoss = $this->tgt[$contratoActivo-2];
-                $this->datas[$i]['entrada'] = 'Mueve SL por alcanzar TGT Contrato activo='.$contratoActivo.
-                                                ' Contratos restantes='.$this->cantidadActivaContratos.
-                                                ' nuevo SL '.$this->acumStopLoss.' TGT contrato='.
-                                                $this->tgt[$contratoActivo];
-            }
+            //if (substr($this->datas[$i]['evento'], 0, 7) == 'Tgt Hit' && $this->cantidadActivaContratos > 0 &&
+            //    $this->totalContratos > 1)
+            //{
+            //    $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
+            //    if ($contratoActivo == 2) // Si estoy en el 2do. contrato activo
+            //    {
+            //        $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e'];
+            //        $this->acumStopLoss = ($this->acumFlAcista ? $this->acumStopLoss + $this->ticker : 
+            //                                $this->acumStopLoss - $this->ticker);
+            //    }
+            //    else // Si no se mueve al target anterior
+            //        $this->acumStopLoss = $this->tgt[$contratoActivo-2];
+            //    $this->datas[$i]['entrada'] = 'Mueve SL por alcanzar TGT Contrato activo='.$contratoActivo.
+            //                                    ' Contratos restantes='.$this->cantidadActivaContratos.
+            //                                    ' nuevo SL '.$this->acumStopLoss.' TGT contrato='.
+            //                                    $this->tgt[$contratoActivo];
+            //}
+            // Remarcado hasta aca para sacar administracion de posicion por ahora 20/3/2025
+
             // Chequea para cerrar swing
             if (!$this->acumFlAbrePosicion)
             {
@@ -1326,10 +1329,54 @@ class IndicadoresService
         // Modificacion para nuevo XTL 09/03/2025
         if ($this->acumFlBuscaEntrada)
         {
+            $minimoActual = $this->datas[$i]['low'];
+            $maximoActual = $this->datas[$i]['high'];
+
+            // Verifica si termina el SP para terminar busqueda
+            if ($this->acumFlAcista)
+            {
+                // Busca el ultimo maximo
+                $UltimoDefinitivo = Self::traeUltimoDefinitivo($i, 'ALCISTA');
+                $offsetUltimoDefinitivo = $UltimoDefinitivo['offset'];
+                
+                // Calcula los TGT nuevamente para alcista si estoy dentro de un SP
+                if ($this->datas[$i]['provMin'] != 0 && 
+                    $this->datas[$i]['provMin'] >= $this->datas[$offsetUltimoDefinitivo]['min'])
+                    Self::calculaTGT($i, $maximoActual, $minimoActual, 'ALCISTA');
+
+                if ($this->datas[$i]['provMin'] != 0 && 
+                    $this->datas[$i]['provMin'] < $this->datas[$offsetUltimoDefinitivo]['min'])
+                {
+                    $this->acumFlBuscaEntrada = false;
+                    $this->flBuscaVelaQuiebreInertia = false;
+
+                    $this->datas[$i]['filtroActivo'] = "Se rompe SP Alcista";
+                }
+            }
+            else
+            {
+                // Busca el ultimo minimo
+                $UltimoDefinitivo = Self::traeUltimoDefinitivo($i, 'BAJISTA');
+                $offsetUltimoDefinitivo = $UltimoDefinitivo['offset'];
+
+                if ($this->datas[$i]['provMax'] != 0 && 
+                    $this->datas[$i]['provMax'] <= $this->datas[$offsetUltimoDefinitivo]['max'])
+                    Self::calculaTGT($i, $maximoActual, $minimoActual, 'BAJISTA');
+
+                if ($this->datas[$i]['provMax'] != 0 && 
+                   $this->datas[$i]['provMax'] > $this->datas[$offsetUltimoDefinitivo]['max'])
+                {
+                    $this->acumFlBuscaEntrada = false;
+                    $this->flBuscaVelaQuiebreInertia = false;
+
+                    $this->datas[$i]['filtroActivo'] = "Se rompe SP Bajista";
+                }
+            }
             // Controla ventana de tiempo para entrada
-            $this->acumQVentanaEntrada++;
+            //$this->acumQVentanaEntrada++;
             $this->acumFlAbrePosicionEntrada = false;
-            if ($this->acumQVentanaEntrada < 6)
+            //if ($this->acumQVentanaEntrada < 6)
+            if ($this->acumFlBuscaEntrada) // Vuelve a preguntar por si se rompio el SP
             {
                 // Abre posicion si la vela quiebra inertia
                 if ($this->acumFlAcista)
@@ -1337,7 +1384,7 @@ class IndicadoresService
                     if ($this->datas[$i]['close'] > $this->datas[$i]['inertia'])
                     {
                         $this->datas[$i]['filtroActivo'] .= 
-                            " CLOSE QUIEBRA INERTIA = ".$this->datas[$i]['inertia'];
+                            " CLOSE QUIEBRA INERTIA ALCISTA = ".$this->datas[$i]['inertia'];
 
                         $this->acumFlAbrePosicionEntrada = true;     
                         $this->flBuscaVelaQuiebreInertia = false;   
@@ -1371,11 +1418,11 @@ class IndicadoresService
                     if ($this->datas[$i]['close'] < $this->datas[$i]['inertia'])
                     {
                         $this->datas[$i]['filtroActivo'] .= 
-                            " CLOSE QUIEBRA INERTIA = ".$this->datas[$i]['inertia'];
+                            " CLOSE QUIEBRA INERTIA BAJISTA = ".$this->datas[$i]['inertia'];
 
                         $this->acumFlAbrePosicionEntrada = true;       
                         $this->flBuscaVelaQuiebreInertia = false;      
-                        $this->acumFlBuscaEntrada = false;                 
+                        $this->acumFlBuscaEntrada = false;    
                     }
                     // Si la vela esta entre la entrada ingresa
                     //if ($this->datas[$i]['high'] >= $this->acumPuntoEntrada &&
@@ -1405,6 +1452,7 @@ class IndicadoresService
             {
                 $this->datas[$i]['entrada'] .= " CIERRA VENTANA DE PUNTO DE ENTRADA ".$this->acumPuntoEntrada;
                 $this->acumFlBuscaEntrada = false;
+                $this->flBuscaVelaQuiebreInertia = false;
             }
         }
         else // Modificacion p/nuevo XTL 09/03/2025
@@ -1441,7 +1489,7 @@ class IndicadoresService
                                                     $rrr.' SL '.$this->acumStopLoss;
 
                 // Modificacion para nuevo calculo XTL 14/03/25
-                if (($this->flSinFiltros ? $rrr >= 0.01 : true) && 
+                if (//($this->flSinFiltros ? $rrr >= 0. : true) && 
                     $this->datas[$i]['horainicio'] >= '04:00:00' &&
                     $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00'))
                 {
@@ -1458,13 +1506,13 @@ class IndicadoresService
 
                     // Gatillo chequeando riesgo en pesos contra SL que sea menor a 500$
                     $flAbre = true;
-                    if ($this->gatillo == 'B')
-                    {
-                        $flAbre = false;
+                    //if ($this->gatillo == 'B')
+                    //{
+                    //    $flAbre = false;
 
-                        if ($riesgoPesos < 500)
-                            $flAbre = true;
-                    }
+                    //    if ($riesgoPesos < 500)
+                    //        $flAbre = true;
+                    //}
                     if (!$this->acumFlAbrePosicion && $flAbre)
                     {
                         $this->acumFlAbrePosicion = true;
@@ -1491,7 +1539,7 @@ class IndicadoresService
                         $retornoPesos = $retornoTicks * $this->valorTicker;
                         if ($riesgoTicks != 0)
                             $rrr = $retornoTicks / $riesgoTicks;
-                        
+
                         if ($this->acumFlAcista)
                             $direccion = 1;
                         else
@@ -1551,7 +1599,8 @@ class IndicadoresService
                                                     $retroceso,
                                                     $riesgoTicks,
                                                     $retornoTicks,
-                                                    '', '', '', $this->acumTipoOperacion, $i);
+                                                    '', '', '', $this->acumTipoOperacion, $i,
+                                                    $this->datas[$i]['ewo'], $this->datas[$i]['bandaInf'], $this->datas[$i]['bandaSup']);
 
                         if ($ret === 'ERROR')
                         {
@@ -1581,24 +1630,26 @@ class IndicadoresService
                             }
                         }
 
+                        // Modificacion p/nuevo manejo de XTL 20/3/2025
                         // Si esta en tgt hit y tiene mas contratos cambia el SL
-                        if (substr($this->datas[$i]['evento'], 0, 7) == 'Tgt Hit' && $this->cantidadActivaContratos > 0 &&
-                            $this->totalContratos > 1)
-                        {
-                            $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
-                            if ($contratoActivo == 2) // Si estoy en el 2do. contrato activo
-                            {
-                                $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e'];
-                                $this->acumStopLoss = ($this->acumFlAcista ? $this->acumStopLoss + $this->ticker : 
-                                                        $this->acumStopLoss - $this->ticker);
-                            }
-                            else // Si no se mueve al target anterior
-                                $this->acumStopLoss = $this->tgt[$contratoActivo-2];
-                            $this->datas[$i]['entrada'] = 'Mueve SL por alcanzar TGT Contrato activo='.$contratoActivo.
-                                                            ' Contratos restantes='.$this->cantidadActivaContratos.
-                                                            ' nuevo SL '.$this->acumStopLoss.' TGT contrato='.
-                                                            $this->tgt[$contratoActivo];
-                        }
+                        //if (substr($this->datas[$i]['evento'], 0, 7) == 'Tgt Hit' && $this->cantidadActivaContratos > 0 &&
+                        //    $this->totalContratos > 1)
+                        //{
+                        //    $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
+                        //    if ($contratoActivo == 2) // Si estoy en el 2do. contrato activo
+                        //    {
+                        //        $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e'];
+                        //        $this->acumStopLoss = ($this->acumFlAcista ? $this->acumStopLoss + $this->ticker : 
+                        //                                $this->acumStopLoss - $this->ticker);
+                        //    }
+                        //    else // Si no se mueve al target anterior
+                        //        $this->acumStopLoss = $this->tgt[$contratoActivo-2];
+                        //    $this->datas[$i]['entrada'] = 'Mueve SL por alcanzar TGT Contrato activo='.$contratoActivo.
+                        //                                    ' Contratos restantes='.$this->cantidadActivaContratos.
+                        //                                    ' nuevo SL '.$this->acumStopLoss.' TGT contrato='.
+                        //                                    $this->tgt[$contratoActivo];
+                        //}
+
                         // Chequea para cerrar swing
                         if (!$this->acumFlAbrePosicion)
                         {
@@ -1647,6 +1698,10 @@ class IndicadoresService
                     {
                         $this->acumFlAbrePosicion = false;
                     }
+
+                    // Modificacion p/nuevo manejo de XTL 21/03/2025
+                    // Si esta fuera de horario descarta operacion
+                    $this->acumFlAbrePosicionEntrada = false;
                 }
                 $this->acumFlBuscaEntrada = false;
             }
@@ -1767,7 +1822,11 @@ class IndicadoresService
                     }
                 }
             }
-            
+
+            // Modificacion p/Nuevo XTL 31/3/2025
+            $this->acumFlFiltroOutBound = false;
+            $this->datas[$i]['outbound'] = false;
+
             // Busca si provmax es menor al ultimo maximo
             if ($this->datas[$i]['provMax'] < $maximo && $this->datas[$i]['provMax'] != 0)
             {
@@ -1985,11 +2044,15 @@ class IndicadoresService
 //        ' fl filtro outbound '.$this->acumFlFiltroOutBound);
 //    dd('y');
 //}
+//if ($i == 1759)
+//    dd($this->datas[$i]['close'].' '.$this->datas[$i]['open'].' abre posi '.$this->acumFlAbrePosicion.' pos entr '.$this->acumFlAbrePosicionEntrada.' por tiempo '
+//    .' cpa '.$this->acumFlCerroPorTiempoAlcista.' cpb '.$this->acumFlCerroPorTiempoBajista.' busca '.$this->acumFlBuscaEntrada.' out '.$this->acumFlFiltroOutBound);
 
         // Modificacion nuevo manejo XTL 13/3/2025
         if (!$this->acumFlAbrePosicion && //($this->filtroSetup != 'T' ? !$this->acumFlAbrePosicion : true) &&
-            $this->datas[$i]['provRet'] >= 0.382 && $this->datas[$i]['provRet'] <= 1 &&
-            $this->datas[$i]['regimenVolatilidad'] == 1 &&
+            //$this->datas[$i]['provRet'] >= 0.382 && $this->datas[$i]['provRet'] <= 1 &&
+            //$this->datas[$i]['regimenVolatilidad'] == 1 &&
+            !$this->acumFlAbrePosicionEntrada &&
             $this->datas[$i]['horainicio'] >= '08:00:00' &&
             $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00') &&
             !$this->acumFlCerroPorTiempoAlcista && !$this->acumFlCerroPorTiempoBajista && 
@@ -2060,6 +2123,10 @@ class IndicadoresService
                         // Descarta si el punto de entrada es menor al low
                         if ($this->acumPuntoEntrada < $this->datas[$i]['low'])
                             $this->acumOff0 = $this->acumOff1oA = -1;
+
+                        // Modificacion p/nuevo manejo de XTL descarta si el minimo anterior es mayor al minimo actual (no hay SP)
+                        if ($this->acumOff0 != -1 ? $this->datas[$this->acumOff0]['min'] > $minimoActual : false)
+                            $this->acumOff0 = $this->acumOff1oA = -1;
                     }
                 }
                 if ($maximoActual == $this->datas[$i]['provMax'] &&
@@ -2107,6 +2174,10 @@ class IndicadoresService
 
                         // Descarta si el punto de entrada es menor al low
                         if ($this->acumPuntoEntrada > $this->datas[$i]['high'])
+                            $this->acumOff0 = $this->acumOff1oA = -1;
+
+                        // Modificacion p/nuevo manejo de XTL descarta si el minimo anterior es mayor al minimo actual (no hay SP)
+                        if ($this->acumOff1oA != -1 ? $this->datas[$this->acumOff1oA]['max'] < $maximoActual : false)
                             $this->acumOff0 = $this->acumOff1oA = -1;
                     }
                 }
@@ -2204,6 +2275,56 @@ class IndicadoresService
         }
     }
 
+    private function calculaTGT($i, $maximoActual, $minimoActual, $op)
+    {
+        if ($op == 'ALCISTA')
+        {
+            self::buscaMinMaxAlcista($i, $this->acumOff1oA, $this->acumOff0, $stopLoss, $maximo1oA);
+
+            if ($this->acumOff1oA != -1 && $this->acumOff0 != -1)
+            {
+                $minimoA = $this->datas[$this->acumOff0]['min'];
+                $maximoB = $this->datas[$this->acumOff1oA]['max'];
+
+                $recorrido1oA = $maximoB - $minimoA;
+
+                $this->acumT1 = Round((($recorrido1oA * 0.618) + $minimoActual)/$this->ticker,0)*$this->ticker;
+                $this->acumT2 = Round((($recorrido1oA) + $minimoActual)/$this->ticker,0)*$this->ticker;
+                $this->acumT3 = Round((($recorrido1oA * 1.618) + $minimoActual)/$this->ticker,0)*$this->ticker;
+                $this->acumT4 = Round((($recorrido1oA * 2.618) + $minimoActual)/$this->ticker,0)*$this->ticker;
+            }
+        }
+        else
+        {
+            self::buscaMinMaxBajista($i, $this->acumOff1oA, $this->acumOff0, $stopLoss, $minimo);
+            
+            if ($this->acumOff1oA != -1 && $this->acumOff0 != -1)
+            {
+                $maximoA = $this->datas[$this->acumOff1oA]['max'];
+                $minimoB = $this->datas[$this->acumOff0]['min'];
+
+                $recorridoAB = $maximoA - $minimoB;
+
+                $this->acumT1 = Round(($maximoActual - ($recorridoAB * 0.618))/$this->ticker,0)*$this->ticker;
+                $this->acumT2 = Round(($maximoActual - ($recorridoAB * 1.))/$this->ticker,0)*$this->ticker;
+                $this->acumT3 = Round(($maximoActual - ($recorridoAB * 1.618))/$this->ticker,0)*$this->ticker;
+                $this->acumT4 = Round(($maximoActual - ($recorridoAB * 2.618))/$this->ticker,0)*$this->ticker;
+            }
+        }
+    }
+
+    // Modificacion para nuevo calulo filtro por XTL 21/03/2025 Trae ultimo minimo o maximo definitivo
+    private function traeUltimoDefinitivo($offset, $op)
+    {
+        $offsetUltimoDefinitivo = -1;
+        for ($o = $offset; $o >= 0 && $offsetUltimoDefinitivo == -1; $o--)
+        {
+            if ($op == 'BAJISTA' ? $this->datas[$o]['max'] != 0 : $this->datas[$o]['min'] != 0)
+                $offsetUltimoDefinitivo = $o;
+        }
+        return ['offset' => $offsetUltimoDefinitivo];
+    }
+    
     // Modificacion para nuevo calulo filtro por XTL 09/03/2025
     private function traeUltimoXTL($offset, $op)
     {
@@ -2376,7 +2497,7 @@ class IndicadoresService
                 $this->datas[$i]['t1'], $this->datas[$i]['t2'], $this->datas[$i]['t3'], $this->datas[$i]['t4'],
                 '', '', '', '', '', '', '',
                 $precioCierre, 
-                0, 0, 'CIERRA NM', $i);
+                0, 0, 'CIERRA NM', $i, '', '', '');
         }
         else
         {
@@ -2444,7 +2565,7 @@ class IndicadoresService
                     $this->datas[$i]['t1'], $this->datas[$i]['t2'], $this->datas[$i]['t3'], $this->datas[$i]['t4'],
                     '', '', '', '', '', '', '',
                     $this->tgt[$contratoActivo], 
-                    $mpc, $mpf, 'CIERRA TGT', $i);
+                    $mpc, $mpf, 'CIERRA TGT', $i, '', '', '');
                 
                 $this->cantidadActivaContratos--;
                 if ($this->cantidadActivaContratos == 0)
@@ -2470,7 +2591,7 @@ class IndicadoresService
                     $this->datas[$i]['t1'], $this->datas[$i]['t2'], $this->datas[$i]['t3'], $this->datas[$i]['t4'],
                     '', '', '', '', '', '', '',
                     $this->datas[$i]['stoploss'], 
-                    0, 0, 'CIERRA SL', $i);
+                    0, 0, 'CIERRA SL', $i, '', '', '');
 
                 $this->datas[$i]['p'] = '0';
                 $this->datas[$i]['evento'] = 'SL '.$this->datas[$i]['stoploss'].' A i'.$i;
@@ -2501,7 +2622,7 @@ class IndicadoresService
                     $this->datas[$i]['t1'], $this->datas[$i]['t2'], $this->datas[$i]['t3'], $this->datas[$i]['t4'],
                     '', '', '', '', '', '', '',
                     $this->tgt[$contratoActivo], 
-                    0, 0, 'CIERRA TGT', $i);
+                    0, 0, 'CIERRA TGT', $i, '', '', '');
                 
                 $this->cantidadActivaContratos--;
                 if ($this->cantidadActivaContratos == 0)
@@ -2537,7 +2658,7 @@ class IndicadoresService
                     $this->datas[$i]['t1'], $this->datas[$i]['t2'], $this->datas[$i]['t3'], $this->datas[$i]['t4'],
                     '', '', '', '', '', '', '',
                     $this->datas[$i]['stoploss'], 
-                    0, 0, 'CIERRA SL', $i);
+                    0, 0, 'CIERRA SL', $i, '', '', '');
             }
         }
     }
@@ -4173,7 +4294,7 @@ class IndicadoresService
                                         $valorEntrada, $stopLoss, $t1, $t2, $t3, $t4, 
                                         $rrr, $swingBars, $contraSwingBars,
                                         $rv, $retroceso, $riesgoTicks, $retornoTicks, $precioCierre, 
-                                        $mpc, $mpf, $operacion, $i)
+                                        $mpc, $mpf, $operacion, $i, $ewo, $bandaInf, $bandaSup)
     {
         //if ($i == 4767)
             //dd($operacion);
@@ -4306,7 +4427,10 @@ class IndicadoresService
                 'min' => $minimo,
                 'max' => $maximo,
                 'offmin' => $offMin,
-                'offmax' => $offMax
+                'offmax' => $offMax,
+                'ewo' => $ewo,
+                'bandaSup' => $bandaSup,
+                'bandaInf' => $bandaInf
             ];
             $this->operaciones[] = $dataOperacion;
 
@@ -4510,7 +4634,7 @@ class IndicadoresService
                     
                     // Modificacion para calcular XTL 01/03/2025
                     // Calcula XTL
-                    $this->CalculaXTL($this->acumitem, $this->acumHigh, $this->acumLow, $this->acumClose, $precioTipico, 
+                    $this->CalculaXTL($this->acumItem, $this->acumHigh, $this->acumLow, $this->acumClose, $precioTipico, 
                                     $SMAXTL, $auxXTL, $CCIXTL, $estado, $rango, 
                                     $TQRVerde, $stopTQRVerde, $tgtTQRVerde,
                                     $TQRRojo, $stopTQRRojo, $tgtTQRRojo);

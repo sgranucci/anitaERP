@@ -11,7 +11,7 @@ class Condicioniva extends Model
 {
 	use CondicionivaTrait;
 
-    protected $fillable = ['nombre', 'letra', 'coniva', 'coniibb'];
+    protected $fillable = ['nombre', 'letra', 'coniva', 'coniibb', 'codigoexterno'];
     protected $table = 'condicioniva';
 
 	public function getDescConIvaAttribute()

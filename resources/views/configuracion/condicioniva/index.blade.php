@@ -1,6 +1,6 @@
 @extends("theme.$theme.layout")
 @section('titulo')
-Provincias
+    Condiciones de iva
 @endsection
 
 @section("scripts")
@@ -33,6 +33,7 @@ Provincias
                             <th>Letra</th>
                             <th>Iva</th>
                             <th>Ingresos brutos</th>
+                            <th>Código ARCA</th>
                             <th class="width80" data-orderable="false"></th>
                         </tr>
                     </thead>
@@ -44,6 +45,7 @@ Provincias
                             <td>{{$data->letra}}</td>
                             <td>{{$data->desc_con_iva}}</td>
                             <td>{{$data->desc_con_iibb}}</td>
+                            <td>{{$data->codigoexterno}}</td>
                             <td>
                        			@if (can('editar-condiciones-de-iva', false))
                                 	<a href="{{route('editar_condicioniva', ['id' => $data->id])}}" class="btn-accion-tabla tooltipsC" title="Editar este registro">

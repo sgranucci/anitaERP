@@ -554,6 +554,7 @@ class FacturacionService
 							'cotizacion' => 1,
 							'tributos' => $tributos,
 							'impuestos' => $impuestos,
+							'condicioniva_id' => $cliente->condicioniva_id,
 							'comprobantesasociados' => $comprobantesAsociados,
 							'fechaasignaciondesde' => date('Ymd', strtotime($fechaAsignacion)),
 							'fechaasignacionhasta' => date('Ymd', strtotime($fechaFactura)),

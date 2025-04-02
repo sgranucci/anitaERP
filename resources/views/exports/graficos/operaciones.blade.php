@@ -20,6 +20,9 @@
 		<th>Retroceso</th>
 		<th>Riesgo (en ticks)</th>
 		<th>Retorno (en ticks)</th>
+		<th>EWO</th>
+		<th>Banda Sup</th>
+		<th>Banda Inf</th>
 		<th>Precio de Cierre 1</th>
 		<th>Hora Out 1</th>
 		<th>Precio de Cierre 2</th>
@@ -56,6 +59,9 @@
 		<td align="right">{{number_format(floatval($data['retroceso']), 5, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['riesgoTicks']), 0, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['retornoTicks']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['ewo']), 4, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['bandaSup']), 4, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['bandaInf']), 4, ",", ".")}}</td>	
 		<td align="right">{{number_format(floatval($data['precioCierre1']), 2, ",", ".")}}</td>
 		<td>{{$data['horaCierre1']}}</td>
 		<td align="right">{{number_format(floatval($data['precioCierre2']), 2, ",", ".")}}</td>
