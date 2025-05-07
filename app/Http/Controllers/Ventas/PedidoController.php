@@ -16,6 +16,7 @@ use App\Repositories\Ventas\TipotransaccionRepositoryInterface;
 use App\Repositories\Ventas\IncotermRepositoryInterface;
 use App\Repositories\Ventas\FormapagoRepositoryInterface;
 use App\Services\Ventas\PedidoService;
+use App\Services\Stock\PrecioService;
 use App\Models\Configuracion\Moneda;
 use App\Models\Ventas\Cliente;
 use App\Models\Stock\Articulo;
@@ -35,6 +36,7 @@ use App\Exports\Ventas\GeneralPedidoExport;
 use App\Exports\Ventas\ConsumoMaterialExport;
 use Illuminate\Pagination\Paginator;
 use DB;
+use Carbon\Carbon;
 
 class PedidoController extends Controller
 {
@@ -48,6 +50,7 @@ class PedidoController extends Controller
 	private $tipotransaccionRepository;
 	private $incotermRepository;
 	private $formpagoRepository;
+	protected $precioService;
 
     public function __construct(PedidoService $pedidoservice,
     							TransporteRepositoryInterface $transporterepository,
@@ -55,6 +58,7 @@ class PedidoController extends Controller
 								MotivocierrepedidoRepositoryInterface $motivocierrepedidoRepository,
 								ClienteQueryInterface $clientequery,
 								LoteRepositoryInterface $loterepository,
+								PrecioService $precioservice,
 								PuntoventaRepositoryInterface $puntoventarepository,
 								TipotransaccionRepositoryInterface $tipotransaccionrepository,
 								IncotermRepositoryInterface $incotermrepository,
@@ -70,6 +74,7 @@ class PedidoController extends Controller
 		$this->tipotransaccionRepository = $tipotransaccionrepository;
 		$this->incotermRepository = $incotermrepository;
 		$this->formapagoRepository = $formpagorepository;
+		$this->precioService = $precioservice;
     }
 
     /**
@@ -553,7 +558,17 @@ class PedidoController extends Controller
 		$puntoventadefault_id = cache()->get(generaKey('puntoventa'));
 		$puntoventaremitodefault_id = cache()->get(generaKey('puntoventaremito'));
 		$tipotransacciondefault_id = cache()->get(generaKey('tipotransaccion'));
-		
+
+		// Actualiza los precios antes de enviar al form
+		foreach($pedido->pedido_combinaciones as $item_pedido)
+		{
+			foreach($item_pedido->pedido_combinacion_talles as $talle_item)
+			{
+				// Actualiza el precio del item y talle
+				$precio = $this->precioService->asignaPrecio($item_pedido->articulo_id, $talle_item->talle_id, Carbon::now());
+				$talle_item->precio = $precio[0]['precio'];
+			}
+		}
         return view('ventas.pedido.editar', compact('pedido', 'cliente_query', 'condicionventa_query', 
 			'vendedor_query', 'transporte_query', 'mventa_query', 'articulo_query', 'modulo_query', 
 			'listaprecio_query', 'moneda_query', 'articuloall_query', 'articuloxsku_query', 

@@ -20,9 +20,19 @@
 		<th>Retroceso</th>
 		<th>Riesgo (en ticks)</th>
 		<th>Retorno (en ticks)</th>
-		<th>EWO</th>
-		<th>Banda Sup</th>
-		<th>Banda Inf</th>
+		<th>Rango XTL Swing</th>
+		<th>Velas sup.Tgt TQR SW</th>
+		<th>Dif. PIVOT Tgt TQR SW</th>
+		<th>Velas alcanzan TQR SW</th>
+		<th>Peso XTL SW</th>
+		<th>EWO Pivot SW</th>
+		<th>Banda Sup Pivot SW</th>
+		<th>Banda Inf Pivot SW</th>
+		<th>Rango XTL Entrada</th>
+		<th>Peso XTL Entrada</th>
+		<th>EWO Entrada</th>
+		<th>Banda Sup Entrada</th>
+		<th>Banda Inf Entrada</th>
 		<th>Precio de Cierre 1</th>
 		<th>Hora Out 1</th>
 		<th>Precio de Cierre 2</th>
@@ -59,6 +69,16 @@
 		<td align="right">{{number_format(floatval($data['retroceso']), 5, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['riesgoTicks']), 0, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['retornoTicks']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['rangoXTLAnterior']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['cantidadVelasSuperoTGTTQR']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['diferenciaPivotTGTTQR']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['cantidadVelasAlcanzaTQR']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['pesoXTLAnterior']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['ewoAnterior']), 4, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['bandaSupAnterior']), 4, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['bandaInfAnterior']), 4, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['rangoXTLActual']), 0, ",", ".")}}</td>
+		<td align="right">{{number_format(floatval($data['pesoXTLActual']), 0, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['ewo']), 4, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['bandaSup']), 4, ",", ".")}}</td>
 		<td align="right">{{number_format(floatval($data['bandaInf']), 4, ",", ".")}}</td>	

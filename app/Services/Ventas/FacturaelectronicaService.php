@@ -213,7 +213,7 @@ class FacturaElectronicaService
 			$req['detalle']['moneda_cotizac'] = $datos['cotizacion'];
 
 			if ($datos['fechacomprobante'] >= 20250406)
-				$req['detalle']['CondicionIVAReceptorId'] = $condicionIvaReceptor_id;
+				$req['detalle']['cond_iva_receptor_id'] = $condicionIvaReceptor_id;
 
 			if ($datos['fechaasignaciondesde'] > 0 && count($datos['comprobantesasociados']) == 0 &&
 				($tipotransaccion == 3 || $tipotransaccion == 8 || $tipotransaccion == 203 || $tipotransaccion == 53))

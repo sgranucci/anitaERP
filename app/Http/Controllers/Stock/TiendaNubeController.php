@@ -23,8 +23,14 @@ class TiendaNubeController extends Controller
 	public function crearImportacion()
     {
         can('importar-tiendanube');
+
+        $tipoimportacion_enum = [
+			'STOCKPRECIO' => 'Stock y precios',
+			'STOCK' => 'Solo Stock',
+			'PRECIO' => 'Solo Precios'
+        ];
 		
-        return view('stock.tiendanube.crearimportacion');
+        return view('stock.tiendanube.crearimportacion', compact('tipoimportacion_enum'));
     }
 
 	public function importar(Request $request)
@@ -35,10 +41,11 @@ class TiendaNubeController extends Controller
                 //'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,'.
                 //'application/vnd.ms-excel',
         //]);
-
         set_time_limit(0);
 
         $collection = Excel::toCollection(new TiendaNubeImport, request("file"));
+
+        $tipoImportacion = $request->tipoimportacion;
 
         $anterSku = '';
         $respuesta = [];
@@ -99,13 +106,34 @@ class TiendaNubeController extends Controller
                         "stock" => (float) $stock
                     ];
 
-                    $variant[] = [
-                        "id" => $id,
-                        "price" => $price,
-                        "compare_at_price" => $price,
-                        "promotional_price" => $promotionalPrice,   
-                        "inventory_levels" => $inventario                 
-                    ];
+                    switch($tipoImportacion)
+                    {
+                    case 'STOCKPRECIO':
+                        $variant[] = [
+                            "id" => $id,
+                            "price" => $price,
+                            "compare_at_price" => $price,
+                            "promotional_price" => $promotionalPrice,   
+                            "inventory_levels" => $inventario                 
+                        ];
+                        break;
+                    case 'PRECIO':
+                        $variant[] = [
+                            "id" => $id,
+                            "price" => $price,
+                            "compare_at_price" => $price,
+                            "promotional_price" => $promotionalPrice
+                        ];
+                        break;
+                    case 'STOCK':
+                        $variant[] = [
+                            "id" => $id,
+                            "price" => $price,
+                            "compare_at_price" => $price,
+                            "inventory_levels" => $inventario
+                        ];
+                        break;                        
+                    }
                 }
             }
         }
