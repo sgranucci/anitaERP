@@ -17,5 +17,14 @@
        	@endforeach
     </select>
 </div>
+<div class="form-group row">
+	<label for="tienda" class="col-lg-3 col-form-label requerido">Tienda</label>
+   	<select name="tienda" id="tienda" data-placeholder="Tienda" class="col-lg-4 form-control required" data-fouc required>
+   		<option value="">-- Seleccionar tienda --</option>
+       	@foreach($tienda_enum as $key => $value)
+  			<option value="{{ $key }}">{{ $value }}</option>    
+       	@endforeach
+    </select>
+</div>
 
 

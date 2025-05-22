@@ -148,7 +148,8 @@ class FacturanteController extends Controller
         //$qFacturas = 1;
         for ($ii = 0; $ii < $qFacturas; $ii++)
         {
-            if ($datos[$ii]['mediopago'] != '5') 
+            if ($datos[$ii]['mediopago'] != '5' &&
+              $datos[$ii]['numero'] >= 1 && $datos[$ii]['numero'] < 99999999) 
             {
               // CAE y CLIENTES VIENEN de a dos registro en array
               $ret = $this->facturanteService->generaFactura($datos[$ii]['tipocomprobante'], $datos[$ii]['prefijo'], 

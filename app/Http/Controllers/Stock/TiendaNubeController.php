@@ -15,6 +15,8 @@ use Auth;
 
 class TiendaNubeController extends Controller
 {
+    private $tienda;
+
     /**
      * Display a listing of the resource.
      *
@@ -30,7 +32,12 @@ class TiendaNubeController extends Controller
 			'PRECIO' => 'Solo Precios'
         ];
 		
-        return view('stock.tiendanube.crearimportacion', compact('tipoimportacion_enum'));
+        $tienda_enum = [
+			'FERLI' => 'Tienda Ferli',
+			'BOAONDA' => 'Tienda Boaonda'
+        ];
+		
+        return view('stock.tiendanube.crearimportacion', compact('tipoimportacion_enum', 'tienda_enum'));
     }
 
 	public function importar(Request $request)
@@ -46,6 +53,7 @@ class TiendaNubeController extends Controller
         $collection = Excel::toCollection(new TiendaNubeImport, request("file"));
 
         $tipoImportacion = $request->tipoimportacion;
+        $this->tienda = $request->tienda;
 
         $anterSku = '';
         $respuesta = [];

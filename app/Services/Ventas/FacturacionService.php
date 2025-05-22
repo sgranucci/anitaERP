@@ -1255,8 +1255,8 @@ class FacturacionService
 							'".'0'."',
 							'".'0'."',
 							'".($zonavta_id == null ? '0' : $cliente->zonavta_id)."',
-							'".($provincia_id == null ? '0' : $cliente->provincia_id)."',
 							'".($subzonavta_id == null ? '0' : $cliente->subzonavta_id)."',
+							'".($provincia_id == null ? '0' : $cliente->provincia_id)."',
 							'".$vendedor."',
 							'".'0'."',
 							'".$venta['condicionventa_id']."',
@@ -1443,7 +1443,8 @@ class FacturacionService
 				
 				for ($ii = 0, $flEncontro = false; $ii < count($dataItem); $ii++)
 				{
-					if ($dataItem[$ii]['partida'] == $partida &&
+					if ($ifx_server == 'IFX_SERVER_LOCAL' ? 
+						$dataItem[$ii]['medida'] == $medida['medida'] : $dataItem[$ii]['partida'] == $partida &&
 						$dataItem[$ii]['sku'] == $item['sku'] &&
 						$dataItem[$ii]['codigocombinacion'] == $item['codigocombinacion'])
 					{

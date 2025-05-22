@@ -239,11 +239,14 @@ class FacturanteService
 		$dataFactura = [];
 
 		if (is_object($arrayItems->ComprobanteItem))
+		{
 			Self::procesaUnItem($arrayItems->ComprobanteItem, $dataFactura);
+		}
 		else
+		{
 			foreach ($arrayItems->ComprobanteItem as $item)
 				Self::procesaUnItem($item, $dataFactura);
-
+		}
 		$cuentaVenta = '411000003';
 		$contrapartida = '114110007';
 		$moneda_id = '1';
