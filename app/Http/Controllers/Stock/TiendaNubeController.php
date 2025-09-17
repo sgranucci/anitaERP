@@ -76,7 +76,7 @@ class TiendaNubeController extends Controller
 
                 // Lee el articulo con todas sus variantes
                 $data = Self::leeTiendaNube($datos[0]);
-
+//dd($data);
                 if (isset($data->id))
 				{
                     $idArticulo = $data->id;
@@ -97,6 +97,7 @@ class TiendaNubeController extends Controller
             // Procesa cada variante
             foreach($data->variants as $variante)
             {
+                //dd($variante);
                 // Si coincide con la linea que esta leyendo del csv la agrega a los datos a enviar
                 if ($datos[0] == $variante->sku)
                 {
@@ -157,18 +158,29 @@ class TiendaNubeController extends Controller
     private function leeTiendaNube($sku)
     {
         // Lee el articulo con todas sus variantes
-        $url = "https://api.tiendanube.com/v1/3796054/products/sku/".$sku;
+        if ($this->tienda == "FERLI")
+            $url = "https://api.tiendanube.com/v1/3796054/products/sku/".$sku;
+        else
+            $url = "https://api.tiendanube.com/v1/6250382/products/sku/".$sku;
 
         $curl = curl_init(); 
+
+        if ($this->tienda == "FERLI")
+            $accessToken = '0dbf46228d998e16568037d613c3236d357423c9';
+        else
+            $accessToken = 'f720a3872d8110e83857824216581471271ee3e5';
+
         curl_setopt_array($curl, array(
             CURLOPT_URL => $url, 
             CURLOPT_RETURNTRANSFER => true, 
             CURLOPT_CUSTOMREQUEST => "GET",
             CURLOPT_HTTPHEADER => array( 
-                'Authentication: bearer 0dbf46228d998e16568037d613c3236d357423c9 ', 
+                'Authentication: bearer '.$accessToken, 
                 'User-Agent: Interface inventario (sergiogranucci@gmail.com)' )
         ));
+
         $response = curl_exec($curl);
+        //dd($response.' '.$url);
         if (curl_errno($curl)) {     
             $error_msg = curl_error($curl); 
             echo $error_msg; 
@@ -182,20 +194,29 @@ class TiendaNubeController extends Controller
     private function grabaTiendaNube($datos)
     {
         // Genera llamada para actualizar stock y precios
-        $url = "https://api.tiendanube.com/v1/3796054/products/stock-price";
+        if ($this->tienda == "FERLI")
+            $url = "https://api.tiendanube.com/v1/3796054/products/stock-price";
+        else
+            $url = "https://api.tiendanube.com/v1/6250382/products/stock-price";
+
         $curl = curl_init(); 
+
+        if ($this->tienda == "FERLI")
+            $accessToken = '0dbf46228d998e16568037d613c3236d357423c9';
+        else
+            $accessToken = 'f720a3872d8110e83857824216581471271ee3e5';
+
         curl_setopt_array($curl, array(
             CURLOPT_URL => $url, 
             CURLOPT_RETURNTRANSFER => true, 
             CURLOPT_CUSTOMREQUEST => "PATCH",
             CURLOPT_HTTPHEADER => array( 
-                'Authentication: bearer 0dbf46228d998e16568037d613c3236d357423c9 ', 
+                'Authentication: bearer '.$accessToken, 
                 'Content-Type: application/json',
                 'User-Agent: Interface inventario (sergiogranucci@gmail.com)' ),
             CURLOPT_POSTFIELDS => $datos
         ));
         $response = curl_exec($curl);
-        dd($datos);
         if (curl_errno($curl)) {     
             $error_msg = curl_error($curl); 
             echo $error_msg; 
@@ -209,14 +230,24 @@ class TiendaNubeController extends Controller
     private function grabaTiendaNubeVariante($idArticulo, $datos)
     {
         // Genera llamada para actualizar stock y precios
-        $url = "https://api.tiendanube.com/v1/3796054/products/".$idArticulo."/variants";
+        if ($this->tienda == "FERLI")
+            $url = "https://api.tiendanube.com/v1/3796054/products/".$idArticulo."/variants";
+        else
+            $url = "https://api.tiendanube.com/v1/6250382/products/".$idArticulo."/variants";
+
         $curl = curl_init(); 
+
+        if ($this->tienda == "FERLI")
+            $accessToken = '0dbf46228d998e16568037d613c3236d357423c9';
+        else
+            $accessToken = 'f720a3872d8110e83857824216581471271ee3e5';
+
         curl_setopt_array($curl, array(
             CURLOPT_URL => $url, 
             CURLOPT_RETURNTRANSFER => true, 
             CURLOPT_CUSTOMREQUEST => "PATCH",
             CURLOPT_HTTPHEADER => array( 
-                'Authentication: bearer 0dbf46228d998e16568037d613c3236d357423c9 ', 
+                'Authentication: bearer '.$accessToken,
                 'Content-Type: application/json',
                 'User-Agent: Interface inventario (sergiogranucci@gmail.com)' ),
             CURLOPT_POSTFIELDS => $datos

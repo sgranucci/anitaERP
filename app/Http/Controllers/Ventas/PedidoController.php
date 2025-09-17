@@ -565,7 +565,8 @@ class PedidoController extends Controller
 			foreach($item_pedido->pedido_combinacion_talles as $talle_item)
 			{
 				// Actualiza el precio del item y talle
-				$precio = $this->precioService->asignaPrecio($item_pedido->articulo_id, $talle_item->talle_id, Carbon::now());
+				$precio = $this->precioService->asignaPrecio($item_pedido->articulo_id, $item_pedido->combinacion_id,
+															$talle_item->talle_id, Carbon::now());
 				$talle_item->precio = $precio[0]['precio'];
 			}
 		}

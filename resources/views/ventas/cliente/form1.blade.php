@@ -38,7 +38,7 @@
    					<label for="email" class="col-lg-3 col-form-label">Email</label>
    					<span class="input-group-text"><i class="fas fa-envelope"></i></span>
    					<div class="col-lg-8">
-   						<input type="email" name="email" id="email" class="form-control" value="{{old('email', $data->email ?? '')}}" placeholder="Ingrese email">
+   						<input type="text" name="email" id="email" class="form-control" value="{{old('email', $data->email ?? '')}}" placeholder="Ingrese email">
    					</div>
 				</div>
 				<div class="form-group row">

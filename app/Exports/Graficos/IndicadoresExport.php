@@ -170,7 +170,6 @@ class IndicadoresExport implements FromView, WithColumnFormatting, WithMapping, 
     {
         return [
             'A' => 40,
-            'BQ' => 100,
         ];
     }
 

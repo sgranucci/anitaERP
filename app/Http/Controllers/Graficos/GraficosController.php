@@ -122,11 +122,15 @@ class GraficosController extends Controller
 		$gatillo_enum = [
 				'A' => 'RRR >= 1.5',
 				'B' => 'RRR >= 1.5 y SL < 500',
+				'ATR' => 'Gatillo por ATR'
 				];
 	
 		$administracionPosicion_enum = [
-			'A' => 'Administración sin filtro de tiempo',
-			'B' => 'Administración filtrando por tiempo',
+			'P' => 'Porcentaje TGT',
+			'A' => 'Cruce contrario ATR',
+			'C' => 'Cambio color XTL',
+			'T' => 'Filtrando por tiempo',
+			'I' => 'Cruce INRT'
 			];
 
 		$filtrosMatematicos_enum = [

@@ -270,6 +270,7 @@ class FacturacionService
 						
 						// Trae la combinacion
 						$combinacion = Combinacion::find($combinacion_id);
+						
 						// Trae la categoria
 						$categoria = Categoria::find($articulo->categoria_id);
 						$codigoCategoria = '';
@@ -348,7 +349,7 @@ class FacturacionService
 					if ($talle)
 					{
 						$precio = $this->precioService->
-										asignaPrecio($articulo->id, $talle->id, $fechaFactura);
+										asignaPrecio($articulo->id, $combinacion_id, $talle->id, $fechaFactura);
 
 						if ($precio[0]['precio'] == 0)
 						{
@@ -1148,6 +1149,8 @@ class FacturacionService
 		{
 			$codigoCliente = $cliente->codigo;
 			$zonavta_id = $cliente->zonavta_id;
+			if (!isset($cliente->provincia_id))
+				$cliente->provincia_id = 902;
 			$provincia_id = $cliente->provincia_id;
 			$subzonavta_id = $cliente->subzonavta_id;
 			$codigopostal = $cliente->codigopostal;
@@ -1162,8 +1165,9 @@ class FacturacionService
 		
 			if (isset($venta['documentocliente']))
 				$domicilio = $nroinscripcion = $venta['documentocliente'];
-		}
 
+			$provincia_id = 902;
+		}
 		// Calcula totales para venta
 		$totalIngBruto2 = $totalIngBruto1 = $totalPercepcionIva = 0;
 		$totalDescuento = $porcentajeDescuento = 0;
@@ -1211,6 +1215,10 @@ class FacturacionService
 		else
 			$nombreProvincia = $cliente->provincias->nombre;	
 
+		if (!isset($cliente->provincia_id))
+			$provincia_id = 902;
+		else	
+			$provincia_id = $cliente->provincia_id;
         $data = array( 	'tabla' => 'venta', 
 						'acc' => 'insert',
             			'campos' => ' 
@@ -1256,7 +1264,7 @@ class FacturacionService
 							'".'0'."',
 							'".($zonavta_id == null ? '0' : $cliente->zonavta_id)."',
 							'".($subzonavta_id == null ? '0' : $cliente->subzonavta_id)."',
-							'".($provincia_id == null ? '0' : $cliente->provincia_id)."',
+							'".($provincia_id == null ? '0' : $provincia_id)."',
 							'".$vendedor."',
 							'".'0'."',
 							'".$venta['condicionventa_id']."',
@@ -1443,8 +1451,8 @@ class FacturacionService
 				
 				for ($ii = 0, $flEncontro = false; $ii < count($dataItem); $ii++)
 				{
-					if ($ifx_server == 'IFX_SERVER_LOCAL' ? 
-						$dataItem[$ii]['medida'] == $medida['medida'] : $dataItem[$ii]['partida'] == $partida &&
+					if (($ifx_server == 'IFX_SERVER_LOCAL' ? 
+						$dataItem[$ii]['medida'] == $medida['medida'] : $dataItem[$ii]['partida'] == $partida) &&
 						$dataItem[$ii]['sku'] == $item['sku'] &&
 						$dataItem[$ii]['codigocombinacion'] == $item['codigocombinacion'])
 					{
@@ -1602,7 +1610,7 @@ class FacturacionService
 
 				$stkmov = $apiAnita->apiCall($data);
 				if (strpos($stkmov, 'Error') !== false)
-					return 'Error stkmov';
+					return $stkmov;
 
 				// Graba stkvmed
 				$data = array( 	'tabla' => 'stkvmed', 

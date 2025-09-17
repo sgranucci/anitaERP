@@ -17,6 +17,8 @@ class CrearTablaPrecio extends Migration
             $table->bigIncrements('id');
 			$table->unsignedBigInteger('articulo_id');
             $table->foreign('articulo_id', 'fk_precio_articulo')->references('id')->on('articulo')->onDelete('restrict')->onUpdate('restrict');
+            $table->unsignedBigInteger('combinacion_id')->nullable();
+            $table->foreign('combinacion_id', 'fk_precio_combinacion')->references('id')->on('combinacion')->onDelete('set null')->onUpdate('set null');
 			$table->unsignedBigInteger('listaprecio_id');
             $table->foreign('listaprecio_id', 'fk_precio_listaprecio')->references('id')->on('listaprecio')->onDelete('restrict')->onUpdate('restrict');
             $table->date('fechavigencia')->nullable();

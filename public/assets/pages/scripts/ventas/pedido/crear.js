@@ -431,6 +431,14 @@
 				let tiposuspensioncliente_id = $("#tiposuspensioncliente_id").val();
 				let nombretiposuspensioncliente = $("#nombretiposuspensioncliente").val();
 				let pedido_combinacion_id = $(this).parents("tr").find(".ids").val();
+				let historiaanulacion = $(this).parents("tr").find(".historiaanulacion").val();
+
+				if (historiaanulacion)
+				{
+					alert("No puede facturar un item anulado");
+					$(tilde).prop("checked",false);
+					return;
+				}
 				// No deja factura cliente stock
 				if (cliente_id == CLIENTE_STOCK_ID)
 				{
@@ -456,6 +464,7 @@
 					$(tilde).prop("checked",false);
 					return;
 				}
+				
 				// Busca si tiene factura asociada
 				var listarUri = "/anitaERP/public/ventas/estadoot/"+ordentrabajo+"/"+pedido_combinacion_id;
             
@@ -594,7 +603,7 @@
 							var nueva_cantidad = cantidad_base * parseFloat(cantmodulo);
 						}
 						else	
-							var nueva_cantidad = arseFloat(cantidad)*parseFloat(cantmodulo);
+							var nueva_cantidad = parseFloat(cantidad)*parseFloat(cantmodulo);
 
 				  		$(this).val(nueva_cantidad);
 						sumaPares(modalActivo, 'cantidadesportalles');

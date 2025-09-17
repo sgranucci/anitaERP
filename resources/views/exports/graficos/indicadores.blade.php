@@ -48,6 +48,7 @@
 		<th>Stop TQR Rojo</th>
 		<th>Tgt TQR Rojo</th>
 		<th>Peso XTL</th>
+		<th>ATR 21</th>
 		<th>Prov.min.</th>
 		<th>Prov.max.</th>
 		<th>Prov.ret.</th>
@@ -68,6 +69,25 @@
 		<th>P</th>
 		<th>EVENTO</th>
 		<th>ZONA</th>
+		{{--
+		<th>True Range</th>
+		<th>ATR 21</th>
+		<th>ATR 42</th>
+		<th>HiDiff</th>
+		<th>LoDiff</th>
+		<th>Aux High</th>
+		<th>Aux Low</th>
+		--}}
+		<th>DI Positivo</th>
+		<th>DI Negativo</th>
+		<th>ATR Close Mayor</th>
+		<th>ATR Close Menor</th>
+		<th>Máximo Close Mayor</th>
+		<th>Mínimo Close Menor</th>
+		<th>Compara con Close</th>
+		<th>ATR TS Close Mayor</th>
+		<th>ATR TS Close Menor</th>
+		<th>ATR Total</th>
 	</tr>
   	</thead>
     <tbody>
@@ -113,6 +133,7 @@
 			<td align="right">{{number_format(floatval($data['stopTQRRojo']), 4, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['tgtTQRRojo']), 4, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['pesoXTL']), 0, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['atr21']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMin']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMax']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provRet']), 2, ",", ".")}}</td>
@@ -138,6 +159,25 @@
 			<td align="right">{{$data['p']}}</td>
 			<td align="left">{{$data['evento']}}</td>
 			<td align="left">{{$data['zona']}}</td>
+			{{--
+			<td align="right">{{$data['trueRange']}}</td>
+			<td align="right">{{$data['atr21']}}</td>
+			<td align="right">{{$data['atr42']}}</td>
+			<td align="right">{{$data['hiDiff']}}</td>
+			<td align="right">{{$data['loDiff']}}</td>
+			<td align="right">{{$data['auxHigh']}}</td>
+			<td align="right">{{$data['auxLow']}}</td>
+			--}}
+			<td align="right">{{number_format(floatval($data['diPositivo']), 5, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['diNegativo']), 5, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['closeMenosAtr']), 2, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['closeMasAtr']), 2, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['maximoCloseMayor']), 2, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['minimoCloseMenor']), 2, ",", ".")}}</td>
+			<td align="right">{{$data['comparaconClose']}}</td>
+			<td align="right">{{number_format(floatval($data['atrTsCloseMayor']), 2, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['atrTsCloseMenor']), 2, ",", ".")}}</td>
+			<td align="right">{{number_format(floatval($data['atrTotal']), 2, ",", ".")}}</td>
         </tr>
     @endforeach
 	</tbody>

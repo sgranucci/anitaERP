@@ -31,7 +31,7 @@
 <div class="form-group row">
 	<label for="cantidadcontratos" class="col-lg-3 col-form-label requerido">Cantidad de contratos:</label>
 	<div class="col-lg-4">
-		<input type="number" name="cantidadcontratos" class="form-control" value="1">
+		<input type="number" name="cantidadcontratos" class="form-control" value="4">
 	</div>
 </div>
 <div class="form-group row">
@@ -81,17 +81,7 @@
 	
 </div>
 <div class="form-group row">
-	<label for="filtrosmatematicos" class="col-lg-3 col-form-label requerido">Filtros matemáticos:</label>
-	<select name="filtrosmatematicos" class="col-lg-3 form-control" required>
-		<option value="">-- Elija si va o no con filtros --</option>
-		@foreach($filtrosMatematicos_enum as $value => $filtroMatematico)
-			@if ($value == 'S')
-				<option value="{{ $value }}" selected>{{ $filtroMatematico }}</option>    
-			@else
-				<option value="{{ $value }}">{{ $filtroMatematico }}</option>    
-			@endif
-		@endforeach
-	</select>
+	<input type="hidden" id="filtrosmatematicos" name="filtrosmatematicos" class="form-control" value="N">
 </div>
 <div class="form-group row">
 	<label for="gatillo" class="col-lg-3 col-form-label requerido">Gatillo:</label>
@@ -121,31 +111,19 @@
 			</div>
 		</div>
 		<div class="form-group row">
-			<label for="largovma" class="col-lg-3 col-form-label requerido">Largo Per&iacute;odo VMA:</label>
-			<div class="col-lg-4">
-				<input type="number" id="largovma" name="largovma" class="form-control" value="{{5}}">
-			</div>
+			<input type="hidden" id="largovma" name="largovma" class="form-control" value="{{5}}">
 		</div>
 		<div class="form-group row">
-			<label for="largocci" class="col-lg-3 col-form-label requerido">Largo Per&iacute;odo CCI:</label>
-			<div class="col-lg-4">
-				<input type="number" id="largocci" name="largocci" class="form-control" value="{{30}}">
-			</div>
+			<input type="hidden" id="largocci" name="largocci" class="form-control" value="{{30}}">
 		</div>
 	</div>
 
 	<div class="col-sm-6">
 		<div class="form-group row">
-			<label for="largoxtl" class="col-lg-3 col-form-label requerido">Largo Per&iacute;odo XTL:</label>
-			<div class="col-lg-4">
-				<input type="number" id="largoxtl" name="largoxtl" class="form-control" value="{{35}}">
-			</div>
+			<input type="hidden" id="largoxtl" name="largoxtl" class="form-control" value="{{35}}">
 		</div>
 		<div class="form-group row">
-			<label for="umbralxtl" class="col-lg-3 col-form-label requerido">Umbral XTL:</label>
-			<div class="col-lg-4">
-				<input type="number" id="umbralxtl" name="umbralxtl" class="form-control" value="{{37}}">
-			</div>
+			<input type="hidden" id="umbralxtl" name="umbralxtl" class="form-control" value="{{37}}">
 		</div>
 		<div class="form-group row">
 			<label for="swingsize" class="col-lg-3 col-form-label requerido">Swing Size:</label>
@@ -154,18 +132,7 @@
 			</div>
 		</div>
 		<div class="form-group row">
-			<label for="calculobase" class="col-lg-3 col-form-label requerido">C&aacute;lculo base:</label>
-			
-			<select name="calculobase" class="col-lg-3 form-control" required>
-				<option value="">-- Elija el c&aacute;lculo base --</option>
-				@foreach($calculoBase_enum as $value => $calculobase)
-					@if ($value == 1)
-						<option value="{{ $value }}" selected>{{ $calculobase }}</option>    
-					@else
-						<option value="{{ $value }}">{{ $calculobase }}</option>    
-					@endif
-				@endforeach
-			</select>
+			<input type="hidden" id="calculobase" name="calculobase" class="form-control" value="1">
 		</div>
 	</div>
 </div>

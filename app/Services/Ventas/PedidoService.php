@@ -644,7 +644,7 @@ class PedidoService
 					$talle = Talle::find($item->talle_id);
 
 					$precio = $this->precioService->
-                                        asignaPrecio($articulo->id, $talle->id, Carbon::now());
+                                        asignaPrecio($articulo->id, $pedidoitem->combinacion_id, $talle->id, Carbon::now());
 
 					if ($descuentoLinea > 0)
 						$precioArticulo = $precio[0]['precio'] * (1 - ($descuentoLinea / 100));
@@ -1018,8 +1018,8 @@ class PedidoService
 								str_replace(',','',$cantidades[$i_comb]),
 								str_replace(',','',$precios[$i_comb]),
 								($listaprecios[$i_comb] == 0 ? 1 : $listaprecios[$i_comb]),
-								($incluyeimpuestos[$i_comb] == null ? 'N' : $incluyeimpuestos[$i_comb]),
-								($monedas[$i_comb] == null ? '1' : $monedas[$i_comb]),
+								($incluyeimpuestos[$i_comb] == null || $incluyeimpuestos[$i_comb] == 'NaN' ? 'N' : $incluyeimpuestos[$i_comb]),
+								($monedas[$i_comb] == null || $monedas[$i_comb] == 'NaN' ? '1' : $monedas[$i_comb]),
 								$descuentos[$i_comb],
 								$categoria_id,
 								$subcategoria_id,
@@ -1071,14 +1071,16 @@ class PedidoService
 								// Guarda apertura de talles
 								if ($value->cantidad > 0)
 								{
-									$flGraboMedidas = true;
+									$precio = $this->precioService->
+										asignaPrecio($articulos[$i_comb], $combinaciones[$i_comb], $value->talle_id, Carbon::now());
 
+									$flGraboMedidas = true;
 									$pedido_combinacion_talle = $this->pedido_combinacion_talleRepository
 																	->create(
 																				$ids[$i_comb], 
 																				$value->talle_id, 
 																				$value->cantidad, 
-																				$value->precio
+																				$precio[0]['precio']
 																				);
 									// Guarda ot
 									if ($ot_ids[$i_comb] > 0 && $funcion == 'update') 

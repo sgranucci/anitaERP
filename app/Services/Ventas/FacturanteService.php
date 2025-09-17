@@ -240,12 +240,20 @@ class FacturanteService
 
 		if (is_object($arrayItems->ComprobanteItem))
 		{
-			Self::procesaUnItem($arrayItems->ComprobanteItem, $dataFactura);
+			$unItem = Self::procesaUnItem($arrayItems->ComprobanteItem, $dataFactura);
+
+			if ($unItem == 'Error')
+				return ['error' => 'Success'];
 		}
 		else
 		{
 			foreach ($arrayItems->ComprobanteItem as $item)
-				Self::procesaUnItem($item, $dataFactura);
+			{
+				$unItem = Self::procesaUnItem($item, $dataFactura);
+
+				if ($unItem == 'Error')
+					return ['error' => 'Success'];
+			}
 		}
 		$cuentaVenta = '411000003';
 		$contrapartida = '114110007';
@@ -382,9 +390,13 @@ class FacturanteService
 			}
 
 			// Tiene que buscar el articulo en base al SKU
-			$codigo = explode("-", $item->Codigo);
+			$subCodigo = substr($item->Codigo, 0, 14);
+			$codigo = explode("-", $subCodigo);
 			$sku = $codigo[0];
-			$codigoCombinacion = $codigo[1];
+			if (isset($codigo[1]))
+				$codigoCombinacion = $codigo[1];
+			else	
+				return 'error';
 			if (isset($codigo[2]))
 				$talle = $codigo[2];
 			else	
@@ -445,7 +457,7 @@ class FacturanteService
 				"descuentointegrado" => '',
 				"descuentofinal" => 0,
 				"descuentointegradofinal" => '',
-				"incluyeimpuesto" => '1',
+				"incluyeimpuesto" => '0',
 				"impuesto_id" => $impuesto_id,
 				"articulo_id" => $articulo_id,
 				"sku" => $sku,

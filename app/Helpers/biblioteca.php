@@ -145,3 +145,8 @@ function getAllChkboxValues($chk_name) {
     $final_arr = array(); //create the final array
     return $final_arr = array_values($chk_name); //sort the resulting array again
 }
+
+function validarHora($hora, $formato = 'H:i') {
+    $d = DateTime::createFromFormat($formato, $hora);
+    return $d && $d->format($formato) === $hora;
+}

@@ -66,7 +66,7 @@ class FacturanteController extends Controller
                                             'hastafecha' => $hastafecha), $rules, $messages);
         if(!$validator->fails()) {
               $retorno = $this->facturanteService->listadoComprobanteFull($parameters);
-//dd($retorno);
+
               if (is_array($retorno))
                 $datas = $retorno;
               else

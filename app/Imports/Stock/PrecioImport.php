@@ -5,6 +5,7 @@ namespace App\Imports\Stock;
 use App\Models\Stock\Precio;
 use App\Models\Stock\Listaprecio;
 use App\Models\Stock\Articulo;
+use App\Models\Stock\Combinacion;
 use App\Models\Stock\Talle;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -34,109 +35,146 @@ class PrecioImport implements OnEachRow, WithHeadingRow
         $row = $row->toArray();
 
         // Lee el articulo
-        $articulo = Articulo::select('id')->where('sku', $row['articulo'])->first();
-
-        $arrayPrecios = [];
-        $fechavigencia = Carbon::createFromFormat('d-m-Y', $this->fechavigencia);
-
-        if ($articulo)
+        if (isset($row['articulo']))
         {
-            // Verifica que lista de precio tiene que cambiar 
-            foreach ($this->heading as $lineaEncabezado)
+            $articulo = Articulo::select('id')->where('sku', $row['articulo'])->first();
+
+            $arrayPrecios = [];
+            $fechavigencia = Carbon::createFromFormat('d-m-Y', $this->fechavigencia);
+
+            if ($articulo)
             {
-                foreach ($lineaEncabezado[0] as $nombreColumna)
+                // Verifica que lista de precio tiene que cambiar 
+                foreach ($this->heading as $lineaEncabezado)
                 {
-                    $nombreInicial = substr($nombreColumna, 0, 2);
-
-                    if ($nombreInicial == 'L_' || $nombreInicial == 'l_')
+                    foreach ($lineaEncabezado[0] as $nombreColumna)
                     {
-                        $codigoLista = str_replace($nombreInicial, '', $nombreColumna);
+                        $nombreInicial = substr($nombreColumna, 0, 2);
 
-                        // Busca la lista de precios
-                        $listaprecio = Listaprecio::select('id')->where('codigo',$codigoLista)->first();
-
-                        if ($listaprecio)
+                        if ($nombreInicial == 'L_' || $nombreInicial == 'l_')
                         {
-                            // Lee la lista de precios
-                            $precio = Precio::where('articulo_id', $articulo->id)
-                                            ->where('listaprecio_id', $listaprecio->id)
-                                            ->whereDate('fechavigencia', $fechavigencia)->first();
+                            $codigoLista = str_replace($nombreInicial, '', $nombreColumna);
 
-                            if ($row[$nombreColumna] != 0)
+                            // Busca la lista de precios
+                            $listaprecio = Listaprecio::select('id')->where('codigo',$codigoLista)->first();
+
+                            if ($listaprecio)
                             {
-                                // Si el precio ya existe lo borra primero
-                                if ($precio)
-                                {
-                                    $operacion = 'UPDATE';
-                                    $id = $precio->id;
-                                }
-                                else    
-                                {
-                                    $operacion = 'CREATE';
-                                    $id = 0;
-                                }
+                                $combinacion_id = null;
 
-                                $arrayPrecios[] = [
-                                    'articulo_id' => $articulo->id,
-                                    'listaprecio_id' => $listaprecio->id,
-                                    'fechavigencia' => $fechavigencia,
-                                    'moneda_id' => $this->moneda_id,
-                                    'precio' => $row[$nombreColumna],
-                                    'precioanterior' => 0,
-                                    'usuarioultcambio_id' => Auth::id(),
-                                    'operacion' => $operacion,
-                                    'id' => $id
-                                ];
+                                // Busca combinacion del articulo 
+                                if (isset($row['combinacion']))
+                                {
+                                    if ($row['combinacion'] > 0)
+                                    {
+                                        $combinacion = Combinacion::where('articulo_id', $articulo->id)
+                                                            ->where('codigo', $row['combinacion'])
+                                                            ->first();
+
+                                        if ($combinacion)
+                                            $combinacion_id = $combinacion->id;
+                                    }
+                                }
+                                // Lee la lista de precios
+                                if ($combinacion_id != null)
+                                {
+                                    $precio = Precio::where('articulo_id', $articulo->id)
+                                                ->where('combinacion_id', $combinacion_id)
+                                                ->where('listaprecio_id', $listaprecio->id)
+                                                ->whereDate('fechavigencia', $fechavigencia)->first();                               
+                                }
+                                else
+                                    $precio = Precio::where('articulo_id', $articulo->id)
+                                                ->where('listaprecio_id', $listaprecio->id)
+                                                ->whereDate('fechavigencia', $fechavigencia)->first();
+
+                                if ($row[$nombreColumna] != 0)
+                                {
+                                    // Si el precio ya existe lo borra primero
+                                    if ($precio)
+                                    {
+                                        $operacion = 'UPDATE';
+                                        $id = $precio->id;
+                                    }
+                                    else    
+                                    {
+                                        $operacion = 'CREATE';
+                                        $id = 0;
+                                    }
+
+                                    $arrayPrecios[] = [
+                                        'articulo_id' => $articulo->id,
+                                        'combinacion_id' => $combinacion_id,
+                                        'listaprecio_id' => $listaprecio->id,
+                                        'fechavigencia' => $fechavigencia,
+                                        'moneda_id' => $this->moneda_id,
+                                        'precio' => $row[$nombreColumna],
+                                        'precioanterior' => 0,
+                                        'usuarioultcambio_id' => Auth::id(),
+                                        'operacion' => $operacion,
+                                        'id' => $id
+                                    ];
+                                }
                             }
                         }
                     }
                 }
-            }
-            // Graba los precios de la fila del excel
-            foreach ($arrayPrecios as $precio)
-            {
-                try 
+                // Graba los precios de la fila del excel
+                foreach ($arrayPrecios as $precio)
                 {
-                    if ($precio['operacion'] == 'CREATE')
-                        Precio::create($precio);
-                    else
-                        Precio::findOrFail($precio['id'])->update($precio);
-
-                    // Lee la lista de precios
-                    $listaprecio = ListaPrecio::find($precio['listaprecio_id']);
-
-                    // Busca talles
-                    $desdetalle = $hastatalle = '';
-                    if ($listaprecio)
+                    try 
                     {
-                        $desdetalle = Talle::select('id')->where('nombre', $listaprecio->desdetalle)->first();
-                        $hastatalle = Talle::select('id')->where('nombre', $listaprecio->hastatalle)->first();
+                        if ($precio['operacion'] == 'CREATE')
+                            Precio::create($precio);
+                        else
+                            Precio::findOrFail($precio['id'])->update($precio);
+
+                        // Lee la lista de precios
+                        $listaprecio = ListaPrecio::find($precio['listaprecio_id']);
+
+                        // Busca talles
+                        $desdetalle = $hastatalle = '';
+                        if ($listaprecio)
+                        {
+                            $desdetalle = Talle::select('id')->where('nombre', $listaprecio->desdetalle)->first();
+                            $hastatalle = Talle::select('id')->where('nombre', $listaprecio->hastatalle)->first();
+                        }
+                        // Actualiza los pedidos con ese articulo
+                        if ($precio['combinacion_id'] != null)
+                            DB::table('pedido_combinacion')->where('articulo_id', $precio['articulo_id'])
+                                                        ->where('combinacion_id', $precio['combinacion_id'])
+                                                        ->update(['precio' => $precio['precio']]);
+                        else
+                            DB::table('pedido_combinacion')->where('articulo_id', $precio['articulo_id'])
+                                                        ->update(['precio' => $precio['precio']]);
+
+                        DB::table('pedido_combinacion_talle')->join('pedido_combinacion', 'pedido_combinacion_talle.pedido_combinacion_id', 'pedido_combinacion.id')
+                                                        ->where('pedido_combinacion.articulo_id', $precio['articulo_id'])
+                                                        ->whereBetween('pedido_combinacion_talle.talle_id', [$desdetalle->id, $hastatalle->id])
+                                                        ->update(['pedido_combinacion_talle.precio' => $precio['precio']]);                                                
+
+                        // Actualiza los movimientos de stock con ese articulo
+                        if ($precio['combinacion_id'] != null)
+                            DB::table('articulo_movimiento')->where('articulo_id', $precio['articulo_id'])
+                                                        ->where('combinacion_id', $precio['combinacion_id'])
+                                                        ->update(['precio' => $precio['precio']]);
+                        else
+                            DB::table('articulo_movimiento')->where('articulo_id', $precio['articulo_id'])
+                                                        ->update(['precio' => $precio['precio']]);
+
+
+                        DB::table('articulo_movimiento_talle')->join('articulo_movimiento', 'articulo_movimiento_talle.articulo_movimiento_id', 'articulo_movimiento.id')
+                                                        ->where('articulo_movimiento.articulo_id', $precio['articulo_id'])
+                                                        ->whereBetween('articulo_movimiento_talle.talle_id', [$desdetalle->id, $hastatalle->id])
+                                                        ->update(['articulo_movimiento_talle.precio' => $precio['precio']]);                
+                        DB::commit();
+                    } catch (\Exception $e) {
+                        DB::rollback();
+                        dd($e->getMessage());
+                        return $e->getMessage();
                     }
-                    // Actualiza los pedidos con ese articulo
-                    DB::table('pedido_combinacion')->where('articulo_id', $precio['articulo_id'])
-                                                    ->update(['precio' => $precio['precio']]);
-
-                    DB::table('pedido_combinacion_talle')->join('pedido_combinacion', 'pedido_combinacion_talle.pedido_combinacion_id', 'pedido_combinacion.id')
-                                                    ->where('pedido_combinacion.articulo_id', $precio['articulo_id'])
-                                                    ->whereBetween('pedido_combinacion_talle.talle_id', [$desdetalle->id, $hastatalle->id])
-                                                    ->update(['pedido_combinacion_talle.precio' => $precio['precio']]);                                                
-
-                    // Actualiza los movimientos de stock con ese articulo
-                    DB::table('articulo_movimiento')->where('articulo_id', $precio['articulo_id'])
-                                                    ->update(['precio' => $precio['precio']]);
-
-                    DB::table('articulo_movimiento_talle')->join('articulo_movimiento', 'articulo_movimiento_talle.articulo_movimiento_id', 'articulo_movimiento.id')
-                                                    ->where('articulo_movimiento.articulo_id', $precio['articulo_id'])
-                                                    ->whereBetween('articulo_movimiento_talle.talle_id', [$desdetalle->id, $hastatalle->id])
-                                                    ->update(['articulo_movimiento_talle.precio' => $precio['precio']]);                
-                    DB::commit();
-                } catch (\Exception $e) {
-                    DB::rollback();
-                    dd($e->getMessage());
-                    return $e->getMessage();
                 }
-            }
-                
+            }                    
         }
     }
 

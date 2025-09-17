@@ -39,7 +39,7 @@ class PrecioService
 		return $lista_id;
 	}
 
-	public function asignaPrecio($articulo_id, $talle_id, $fechavigencia)
+	public function asignaPrecio($articulo_id, $combinacion_id, $talle_id, $fechavigencia)
 	{
 		$talle_id = preg_replace('([^A-Za-z0-9,])', '', $talle_id);
 		$array_talle = explode(',', $talle_id);
@@ -70,10 +70,20 @@ class PrecioService
 
 				$precio = Precio::with('listaprecios')
 								->where('articulo_id',$articulo_id)
+								->where('combinacion_id', $combinacion_id)
 								->where('listaprecio_id',$lista)
 								->where('fechavigencia', '<=', $fecha)
 								->orderBy('fechavigencia', 'desc')
 								->first();
+				if (!$precio)
+				{
+					$precio = Precio::with('listaprecios')
+								->where('articulo_id',$articulo_id)
+								->where('listaprecio_id',$lista)
+								->where('fechavigencia', '<=', $fecha)
+								->orderBy('fechavigencia', 'desc')
+								->first();
+				}
 				if ($precio)
 				{
 					$precio_talle = $precio->precio;
