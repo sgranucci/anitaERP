@@ -40,7 +40,9 @@ class MovimientoStockController extends Controller
     public function index()
     {
         can('listar-movimientos-de-stock');
-        
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', '0');
+
 		$datas = $this->movimientoStockService->all();
 		$estado_enum = $this->movimientoStockService->estadoEnum();
         return view('stock.movimientostock.index', compact('datas', 'estado_enum'));

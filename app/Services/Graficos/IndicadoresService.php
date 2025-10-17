@@ -81,6 +81,7 @@ class IndicadoresService
     public $ewoAnterior;
     public $bandaSupAnterior;
     public $bandaInfAnterior;
+    public $acumFlMueveSl;
 
     private $flBatch;
     private $k1, $k2;
@@ -270,6 +271,7 @@ class IndicadoresService
         $this->flAreaAlcista = false;
         $this->ultimoPivot = 0;
         $this->flCumpleAdministracion = false;
+        $this->acumFlMueveSl = false;
         
         // Variables de calculo de swing
         $this->acumTendencia = 'Indefinida';
@@ -1314,11 +1316,23 @@ class IndicadoresService
                         $contratoActivo = $this->cantidadActivaContratos;
                         $this->acumProfitAndLoss = $this->calculaProfitAndLoss($this->acumIdTrade, $contratoActivo, $this->datas[$i]['close']);
 
-                        // Si esta perdiendo cierra
+                        if ($this->acumFlMueveSl)
+                            break;
+
+                        // Si esta perdiendo achica a la mitad entre el precio y el SL original
                         if ($this->acumProfitAndLoss < 0)
                         {
-                            $this->acumFlCierraPorTiempo = true;
-                            $this->datas[$i]['entrada'] .= "Cierra por tiempo ";
+                            $diferencia = $this->datas[$i]['open'] - $this->acumStopLoss;
+
+                            if ($this->operaciones[$this->acumIdTrade-1]['direccion'] == 1)
+                                $this->acumStopLoss = $this->acumStopLoss + ($diferencia / 2);
+                            else
+                                $this->acumStopLoss = $this->acumStopLoss - ($diferencia / 2);
+                            
+                            $this->datas[$i]['entrada'] .= "Mueve SL por administracion por tiempo con perdida  ".
+                                                            $this->acumProfitAndLoss." a precio - SL / 2";
+
+                            $this->acumFlMueveSl = true;
                         }
                         else // Si gana va a BE + 1
                         {
@@ -4832,8 +4846,8 @@ class IndicadoresService
                                         $cantidadVelasAlcanzaTQR,
                                         $rangoXTLActual)
     {
-        //if ($i == 4767)
-            //dd($operacion);
+        $this->acumFlMueveSl = false;
+
         if ($operacion == 'CIERRA SL' || $operacion == 'CIERRA TGT' || $operacion == 'CIERRA NM')
         {
             // Al cerrar inicializa flag de administracion de posicion

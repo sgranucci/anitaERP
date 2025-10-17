@@ -530,6 +530,11 @@ class FacturanteService
 				$cuentaTarjeta = 113100007;
 				$moneda_id = $pago['moneda_id'];
 
+				if ($pago['total'] > 0)
+					$comprobante = 'PRE';
+				else
+					$comprobante = 'NCA';
+
 				// Busca cuenta
 				$cuentaFinanciera = Self::generaCuenta($pago['tarjeta']);
 
@@ -545,11 +550,11 @@ class FacturanteService
 				// Numera la PRE
 				$letra = 'A';
 				$puntoVenta = 1;
-				$numeroPre = $this->ventaRepository->traeUltimoNumeroRemito('PRE', $letra, $puntoVenta);
+				$numeroPre = $this->ventaRepository->traeUltimoNumeroRemito($comprobante, $letra, $puntoVenta);
 
 				// Graba climov
 				$fecha = Carbon::now();
-				$climov = Self::grabaClimov(substr($cuentaFinanciera,-6), $fecha, "PRE", 
+				$climov = Self::grabaClimov(substr($cuentaFinanciera,-6), $fecha, $comprobante, 
 											$letra, $puntoVenta, $numeroPre, $total, $moneda_id);
 
 				// Graba venta
@@ -609,7 +614,7 @@ class FacturanteService
 				//	return 'Error';
 
 				// Numera el remito
-				if ($this->ventaRepository->numeraAnita('PRE', $letra, $puntoVenta) == 'Error')
+				if ($this->ventaRepository->numeraAnita($comprobante, $letra, $puntoVenta) == 'Error')
 					return 'Error';
 			}
 		}

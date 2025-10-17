@@ -128,9 +128,7 @@ class GraficosController extends Controller
 		$administracionPosicion_enum = [
 			'P' => 'Porcentaje TGT',
 			'A' => 'Cruce contrario ATR',
-			'C' => 'Cambio color XTL',
-			'T' => 'Filtrando por tiempo',
-			'I' => 'Cruce INRT'
+			'T' => 'Filtrando por tiempo'
 			];
 
 		$filtrosMatematicos_enum = [
