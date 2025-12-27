@@ -121,6 +121,9 @@ class FacturanteService
 		case '4':
 			$tarjeta = 'TR';
 			break;
+		case '5':
+			$tarjeta = 'NBO';
+			break;			
 		}
 	
 		// Busca cuenta
@@ -138,6 +141,9 @@ class FacturanteService
 		case "TR":
 			$cuentaFinanciera = "004781/5";
 			break;
+		case "NBO":
+			$cuentaFinanciera = "11310112";
+			break;			
 		}
 
 		// Graba anita
@@ -495,6 +501,9 @@ class FacturanteService
 		case '4':
 			$tarjeta = 'TR';
 			break;
+		case '5':
+			$tarjeta = 'NBO';
+			break;			
 		}
 
 		for ($ii = 0, $flAgrego = false; $ii < count($this->arrayPago); $ii++)
@@ -536,7 +545,10 @@ class FacturanteService
 					$comprobante = 'NCA';
 
 				// Busca cuenta
-				$cuentaFinanciera = Self::generaCuenta($pago['tarjeta']);
+				$cuentas = Self::generaCuenta($pago['tarjeta']);
+				
+				$cuentaFinanciera = $cuentas['cuentafinanciera'];
+				$cliente = $cuentas['cliente'];
 
 				// Busca cuenta financiera
 				if ($cuentaFinanciera != '')
@@ -554,7 +566,7 @@ class FacturanteService
 
 				// Graba climov
 				$fecha = Carbon::now();
-				$climov = Self::grabaClimov(substr($cuentaFinanciera,-6), $fecha, $comprobante, 
+				$climov = Self::grabaClimov($cliente, $fecha, $comprobante, 
 											$letra, $puntoVenta, $numeroPre, $total, $moneda_id);
 
 				// Graba venta
@@ -743,23 +755,32 @@ class FacturanteService
 	{
 		// Busca cuenta
 		$cuentaFinanciera = '';
+		$cliente = '';
 		switch($tarjeta)
 		{
 		case "MEP":
 			$cuentaFinanciera = "00000608";
+			$cliente = "000608";
 			break;
 		case "TN":
 			$cuentaFinanciera = "00000609";
+			$cliente = "000609";
 			break;
 		case "GO":
 			$cuentaFinanciera = "00000610";
+			$cliente = "000610";
 			break;
 		case "TR":
 			$cuentaFinanciera = "004781/5";
+			$cliente = "000601";
 			break;
+		case "NBO":
+			$cuentaFinanciera = "11310112";
+			$cliente = "000612";
+			break;			
 		}
 
-		return $cuentaFinanciera;
+		return ['cuentafinanciera' => $cuentaFinanciera, 'cliente' => $cliente];
 	}
 
 }

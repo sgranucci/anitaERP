@@ -51,7 +51,7 @@ class RepStockOtController extends Controller
         $articulo_query = $this->articuloQuery->allQueryConCombinacion(['id','sku','descripcion'], 'descripcion');
         $articulo_query->prepend((object) ['id'=>'0','descripcion'=>'Primero']);
         $articulo_query->push((object) ['id'=>'99999999','descripcion'=>'Ultimo']);
-        $linea_query = Linea::all();
+        $linea_query = Linea::orderBy('nombre', 'ASC')->get();
         $linea_query->prepend((object) ['id'=>'0','nombre'=>'Primero']);
         $linea_query->push((object) ['id'=>'99999999','nombre'=>'Ultimo']);
         $categoria_query = Categoria::all();

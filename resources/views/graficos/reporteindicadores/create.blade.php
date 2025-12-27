@@ -6,19 +6,19 @@
 @section("scripts")
 <script>
     $(function () {
-        $("#lavel-tiempo").css("display", "none");
-        $("#tiempo").css("display", "none");
-
+        $("#lavel-tiempo").show();
+        $("#tiempo").show();
         $(document).on('change', '#administracionposicion', function(event) {
-            if ($("#administracionposicion").val() == 'B')
+            if ($("#administracionposicion").val() == 'TP' ||
+                $("#administracionposicion").val() == 'T')
             {
-                $("#lavel-tiempo").css("display", "block");
-                $("#tiempo").css("display", "block");
+                $("#lavel-tiempo").show();
+                $("#tiempo").show();
             }
             else
             {
-                $("#lavel-tiempo").css("display", "none");
-                $("#tiempo").css("display", "none");
+                $("#lavel-tiempo").hide();
+                $("#tiempo").hide();
             }
         });
     });

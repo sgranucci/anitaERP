@@ -287,6 +287,9 @@ class PrecioController extends Controller
 
 	public function importar(Request $request)
     {
+        ini_set('memory_limit', '512M');
+	  	ini_set('max_execution_time', '0');
+
         $this->validate(request(), [
             'file' => 'required|mimetypes::'.
                 'application/vnd.ms-office,'.

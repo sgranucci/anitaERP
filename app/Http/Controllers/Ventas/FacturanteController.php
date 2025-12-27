@@ -56,7 +56,8 @@ class FacturanteController extends Controller
 			      '2' => 'Tienda nube',
             '3' => 'Go',
             '4' => 'Transferencia',
-            '5' => 'No transfiere'
+            '5' => 'Nube BOA',
+            '6' => 'No transfiere'
 		    ];          
         
         $desdefecha = $parameters['desdefecha'];
@@ -89,9 +90,11 @@ class FacturanteController extends Controller
                 if ($datas[$i]->Prefijo == 21)
                   $datas[$i]->mediopago = '1';
                 elseif ($datas[$i]->Prefijo == 23)
-                  $datas[$i]->mediopago = '1';
-                else
+                  $datas[$i]->mediopago = '2';
+                elseif ($datas[$i]->Prefijo == 26)
                   $datas[$i]->mediopago = '5';
+                else
+                  $datas[$i]->mediopago = '6';
 
                 $letra = substr($datas[$i]->TipoComprobante, -1);
                 switch($datas[$i]->TipoComprobante)
@@ -148,7 +151,7 @@ class FacturanteController extends Controller
         //$qFacturas = 1;
         for ($ii = 0; $ii < $qFacturas; $ii++)
         {
-            if ($datos[$ii]['mediopago'] != '5' &&
+            if ($datos[$ii]['mediopago'] != '6' &&
               $datos[$ii]['numero'] >= 1 && $datos[$ii]['numero'] < 99999999) 
             {
               // CAE y CLIENTES VIENEN de a dos registro en array

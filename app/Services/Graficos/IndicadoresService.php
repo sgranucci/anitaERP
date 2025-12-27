@@ -82,7 +82,8 @@ class IndicadoresService
     public $bandaSupAnterior;
     public $bandaInfAnterior;
     public $acumFlMueveSl;
-
+    public $flDesactivaAdministracion;
+    public $flMovioSlPorPerdida;
     private $flBatch;
     private $k1, $k2;
     private $dataAnterior = [];
@@ -149,6 +150,8 @@ class IndicadoresService
     public $flAreaAlcista;
     public $acumDireccion;
     public $flCumpleAdministracion;
+    public $flEsperaEntrada;
+    public $horaEsperaEntrada ;
 
 	public function calculaIndicadores($desdefecha, $hastafecha, $desdehora, $hastahora, $especie, $calculobase, 
                                         $mmcorta, $mmlarga, $compresion, $largovma, $largocci, $largoxtl,
@@ -272,6 +275,11 @@ class IndicadoresService
         $this->ultimoPivot = 0;
         $this->flCumpleAdministracion = false;
         $this->acumFlMueveSl = false;
+        $this->flDesactivaAdministracion = false;
+        $this->flMovioSlPorPerdida = false;
+
+        $this->flEsperaEntrada = false;
+        $this->horaEsperaEntrada = '';
         
         // Variables de calculo de swing
         $this->acumTendencia = 'Indefinida';
@@ -1294,6 +1302,85 @@ class IndicadoresService
             // controla administracion de posicion
             switch($this->administracionPosicion)
             {
+                case 'TP': // Por tiempo y porcentaje de TGT
+                    // Si paso a BE deja de administrar posicion
+                    if ($this->flDesactivaAdministracion)
+                        break;
+
+                    $horaInicio = new \DateTime($this->datas[$i]['horainicio']);
+                    $horaFin = new \DateTime($this->operaciones[$this->acumIdTrade-1]['desdeHora']);
+
+                    $diferencia = $horaInicio->diff($horaFin);
+                    $diferenciaMinutos = ($diferencia->h * 60) + $diferencia->i;
+                    if ($diferenciaMinutos >= intval($this->tiempo))
+                    {
+                        $contratoActivo = $this->cantidadActivaContratos;
+                        $this->acumProfitAndLoss = $this->calculaProfitAndLoss($this->acumIdTrade, $contratoActivo, $this->datas[$i]['close']);
+
+                        // Si esta perdiendo achica a la mitad entre el precio y el SL original
+                        if ($this->acumProfitAndLoss < 0 && !$this->flMovioSlPorPerdida)
+                        {
+                            $diferencia = abs($this->datas[$i]['open'] - $this->acumStopLoss);
+
+                            if ($this->operaciones[$this->acumIdTrade-1]['direccion'] == 1)
+                                $this->acumStopLoss = $this->acumStopLoss + ($diferencia / 2);
+                            else
+                                $this->acumStopLoss = $this->acumStopLoss - ($diferencia / 2);
+                            
+                            $this->datas[$i]['entrada'] .= "Mueve SL por administracion por tiempo con perdida  ".
+                                                            $this->acumProfitAndLoss." a precio - SL / 2";
+
+                            $this->flMovioSlPorPerdida = true;
+                        }
+                        else // Si gana va a BE + 1
+                        {
+                            if ($this->acumProfitAndLoss >= 0)
+                            {
+                                $this->acumStopLoss = $this->datas[$this->OffAbrePosicion]['e']; 
+                                $this->acumStopLoss = ($this->acumFlAcista ? 
+                                                        $this->acumStopLoss + $this->ticker : $this->acumStopLoss - $this->ticker);
+                                $this->datas[$i]['entrada'] .= "Mueve SL por administracion por tiempo con ganancia ".
+                                                                $this->acumProfitAndLoss." a BE + - 1";
+
+                                $this->flDesactivaAdministracion = true;
+                            }
+                        }
+                    }
+
+                    // Administra por porcentaje de target
+                    if (!$this->flDesactivaAdministracion)
+                    {
+                        $contratoActivo = $this->totalContratos - $this->cantidadActivaContratos + 1;
+                        
+                        // Toma el 75% del target
+                        $recorrido = abs($this->operaciones[$this->acumIdTrade-1]['valorEntrada'] -
+                                    $this->operaciones[$this->acumIdTrade-1]['t'.$contratoActivo]) * 0.75;
+
+                        if ($this->operaciones[$this->acumIdTrade-1]['direccion'] == 1)
+                        {
+                            $target = $this->operaciones[$this->acumIdTrade-1]['valorEntrada'] + $recorrido;
+
+                            if ($this->datas[$i]['open'] >= $target ||
+                                $this->datas[$i]['close'] >= $target ||
+                                $this->datas[$i]['high'] >= $target ||
+                                $this->datas[$i]['low'] >= $target)
+                                $this->flCumpleAdministracion = true;
+                        }
+                        else
+                        {
+                            $target = $this->operaciones[$this->acumIdTrade-1]['valorEntrada'] - $recorrido;
+
+                            if ($this->datas[$i]['open'] <= $target ||
+                                $this->datas[$i]['close'] <= $target ||
+                                $this->datas[$i]['high'] <= $target ||
+                                $this->datas[$i]['low'] <= $target)
+                                $this->flCumpleAdministracion = true;
+                        }
+
+                        if ($this->flCumpleAdministracion)
+                            $this->activaAdministracion($i);
+                    }
+                    break;
                 case 'T': // Por tiempo
                 case 'B': // Vieja opcion
                     // Cierra en la siguiente vela si dio cierre por tiempo con perdida
@@ -1322,7 +1409,7 @@ class IndicadoresService
                         // Si esta perdiendo achica a la mitad entre el precio y el SL original
                         if ($this->acumProfitAndLoss < 0)
                         {
-                            $diferencia = $this->datas[$i]['open'] - $this->acumStopLoss;
+                            $diferencia = abs($this->datas[$i]['open'] - $this->acumStopLoss);
 
                             if ($this->operaciones[$this->acumIdTrade-1]['direccion'] == 1)
                                 $this->acumStopLoss = $this->acumStopLoss + ($diferencia / 2);
@@ -1696,26 +1783,99 @@ class IndicadoresService
                     $this->datas[$i]['horainicio'] >= '04:00:00' &&
                     $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00'))
                 {
-                    $this->acumValorEntrada = $this->datas[$i]['open'];
+                    // Si esta esperando entrada valida si el open es menor o igual o pasan 10 minutos
+                    if ($this->flEsperaEntrada)
+                    {
+                        if ($this->acumFlAcista)
+                        {
+                            if ($this->datas[$i]['open'] <= $this->acumValorEntrada)
+                            {
+                                $this->flEsperaEntrada = false;
+                                $this->acumFlAbrePosicionEntrada = false;
+
+                                $this->datas[$i]['entrada'] .= ' Open menor o igual a valor de entrada ';
+                            }
+                            else
+                            {
+                                $horaInicio = strtotime($this->datas[$i]['horainicio']);
+                                $horaEsperaEntrada = strtotime($this->horaEsperaEntrada);
+                                $diferenciaMinutos = abs($horaEsperaEntrada-$horaInicio)/60;
+                                if ($diferenciaMinutos > 10)
+                                {
+                                    $this->flEsperaEntrada = false;
+                                    $this->acumFlAbrePosicionEntrada = false;
+
+                                    $this->datas[$i]['entrada'] .= ' Pasaron 10 minutos, descarta operacion ';
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if ($this->datas[$i]['open'] > $this->acumValorEntrada)
+                            {
+                                $this->flEsperaEntrada = false;
+                                $this->acumFlAbrePosicionEntrada = false;
+
+                                $this->datas[$i]['entrada'] .= ' Open mayor a valor de entrada ';
+                            }
+                            else
+                            {
+                                $horaInicio = strtotime($this->datas[$i]['horainicio']);
+                                $horaEsperaEntrada = strtotime($this->horaEsperaEntrada);
+                                $diferenciaMinutos = abs($horaEsperaEntrada-$horaInicio)/60;
+                                if ($diferenciaMinutos > 10)
+                                {
+                                    $this->flEsperaEntrada = false;
+                                    $this->acumFlAbrePosicionEntrada = false;
+
+                                    $this->datas[$i]['entrada'] .= ' Pasaron 10 minutos, descarta operacion ';
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if ($this->acumFlAcista)
+                        {
+                            // Chequea valor de entrada contra cierre de vela anterior
+                            if ($this->datas[$i]['open'] > $this->datas[$i-1]['close'])
+                            {
+                                $this->flEsperaEntrada = true;
+                                $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
+                                
+                                $this->datas[$i]['entrada'] .= ' Open mayor a close anterior, espera para entrar ';
+
+                            }
+                        }
+                        else
+                        {
+                            // Chequea valor de entrada contra cierre de vela anterior
+                            if ($this->datas[$i]['open'] < $this->datas[$i-1]['close'])
+                            {
+                                $this->flEsperaEntrada = true;
+                                $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
+                                
+                                $this->datas[$i]['entrada'] .= ' Open menor a close anterior, espera para entrar ';
+
+                            }                            
+                        }
+                        $this->acumValorEntrada = $this->datas[$i]['open'];
+                    }
 
                     // Modificacion p/nuevo manejo de XTL 14/03/25
                     // Asigna valor de entrada segun filtro open-high-close-low
                     //if ($this->acumFlAbrePosicionEntrada)
                     //    $this->acumValorEntrada = $this->acumPuntoEntrada;
 
+                    if (!$this->flEsperaEntrada)
+                        $flAbre = true;
+                    else
+                        $flAbre = false;
+
                     $riesgoPuntos = abs($this->acumValorEntrada-$this->acumStopLoss);
                     $riesgoTicks = round($riesgoPuntos/$this->ticker, 0);
                     $riesgoPesos = $riesgoTicks * $this->valorTicker;
 
-                    // Gatillo chequeando riesgo en pesos contra SL que sea menor a 500$
-                    $flAbre = true;
-                    //if ($this->gatillo == 'B')
-                    //{
-                    //    $flAbre = false;
-
-                    //    if ($riesgoPesos < 500)
-                    //        $flAbre = true;
-                    //}
                     if (!$this->acumFlAbrePosicion && $flAbre)
                     {
                         $this->acumFlAbrePosicion = true;
@@ -4847,6 +5007,8 @@ class IndicadoresService
                                         $rangoXTLActual)
     {
         $this->acumFlMueveSl = false;
+        $this->flDesactivaAdministracion = false;
+        $this->flMovioSlPorPerdida = false;
 
         if ($operacion == 'CIERRA SL' || $operacion == 'CIERRA TGT' || $operacion == 'CIERRA NM')
         {
@@ -5933,7 +6095,7 @@ class IndicadoresService
         }
 
         // Verifica cierre de area
-        if ($this->flAreaAlcista && $this->datas[$i]['provMin'] < $ultimoMinimo && $this->datas[$i]['provMin'] != 0)
+        if ($this->flAreaAlcista && $this->ultimoMinimoProvisorio < $ultimoMinimo && $this->ultimoMinimoProvisorio != 0)
         {
             $this->flAreaAlcista = false;
             $this->datas[$i]['entrada'] .= 'CIERRA AREA ALCISTA ';
@@ -5941,9 +6103,20 @@ class IndicadoresService
         else
         {
             if ($this->flAreaAlcista)
-                $this->datas[$i]['entrada'] .= ' AREA ALCISTA ';
+            {
+                if ($this->datas[$i]['provMin'] != 0 && $this->datas[$i]['provMin'] != $this->ultimoMinimoProvisorio)
+                    $this->ultimoMinimoProvisorio = $this->datas[$i]['provMin'];
+
+                if ($this->datas[$i]['high'] > $ultimoMaximo)
+                {
+                    $this->flAreaAlcista = false;
+                    $this->datas[$i]['entrada'] .= 'CIERRA AREA ALCISTA ';  
+                }
+                else
+                    $this->datas[$i]['entrada'] .= ' AREA ALCISTA UmaxD '.$ultimoMaximo.' UminP '.$this->ultimoMinimoProvisorio;
+            }
         }
-        if ($this->flAreaBajista && $this->datas[$i]['provMax'] > $ultimoMaximo && $this->datas[$i]['provMax'] != 0)
+        if ($this->flAreaBajista && $this->ultimoMaximoProvisorio > $ultimoMaximo && $this->ultimoMaximoProvisorio != 0)
         {
             $this->flAreaBajista = false;
             $this->datas[$i]['entrada'] .= 'CIERRA AREA BAJISTA ';
@@ -5951,7 +6124,18 @@ class IndicadoresService
         else
         {
             if ($this->flAreaBajista)
-                $this->datas[$i]['entrada'] .= ' AREA BAJISTA ';
+            {
+                if ($this->datas[$i]['provMax'] != 0 && $this->datas[$i]['provMax'] != $this->ultimoMaximoProvisorio)
+                    $this->ultimoMaximoProvisorio = $this->datas[$i]['provMax'];
+
+                if ($this->datas[$i]['low'] < $ultimoMinimo)
+                {
+                    $this->flAreaBajista = false;
+                    $this->datas[$i]['entrada'] .= 'CIERRA AREA BAJISTA ';  
+                }
+                else
+                    $this->datas[$i]['entrada'] .= ' AREA BAJISTA  UminD '.$ultimoMinimo.' UmaxP '.$this->ultimoMaximoProvisorio;
+            }
         }
 
         // Verifica si no rompe señal con area abierta
@@ -6121,8 +6305,8 @@ class IndicadoresService
                     $this->acumOff0 = $this->acumOff1oA = -1;
             }
         }
-        if ($this->acumFlBajista &&
-            ($this->filtroSetup == 'B' || $this->filtroSetup == 'T')) // Bajista
+        if ($this->acumFlBajista) //&&
+           // ($this->filtroSetup == 'B' || $this->filtroSetup == 'T')) // Bajista
         {
             if (!$this->acumFlAbrePosicion)
             {
@@ -6249,6 +6433,10 @@ class IndicadoresService
             $this->acumFlCierraVelaSiguiente = true;
         }
         else // Mueve a BE + 1
+        {
             $this->mueveSlAdministracionPosicion($i);
+
+            $this->flDesactivaAdministracion = true;
+        }
     }
 }

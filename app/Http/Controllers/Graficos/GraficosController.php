@@ -126,6 +126,7 @@ class GraficosController extends Controller
 				];
 	
 		$administracionPosicion_enum = [
+			'TP' => 'Por Tiempo y Porcentaje TGT',
 			'P' => 'Porcentaje TGT',
 			'A' => 'Cruce contrario ATR',
 			'T' => 'Filtrando por tiempo'

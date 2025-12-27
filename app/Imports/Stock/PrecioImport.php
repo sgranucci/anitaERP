@@ -35,9 +35,14 @@ class PrecioImport implements OnEachRow, WithHeadingRow
         $row = $row->toArray();
 
         // Lee el articulo
-        if (isset($row['articulo']))
+        if (isset($row['articulo']) || isset($row['sku']))
         {
-            $articulo = Articulo::select('id')->where('sku', $row['articulo'])->first();
+            if (isset($row['articulo']))
+                $sku = $row['articulo'];
+            else
+                $sku = $row['sku'];
+
+            $articulo = Articulo::select('id')->where('sku', $sku)->first();
 
             $arrayPrecios = [];
             $fechavigencia = Carbon::createFromFormat('d-m-Y', $this->fechavigencia);
@@ -140,14 +145,14 @@ class PrecioImport implements OnEachRow, WithHeadingRow
                             $hastatalle = Talle::select('id')->where('nombre', $listaprecio->hastatalle)->first();
                         }
                         // Actualiza los pedidos con ese articulo
-                        if ($precio['combinacion_id'] != null)
+                        if ($precio['combinacion_id'] > 0)
                             DB::table('pedido_combinacion')->where('articulo_id', $precio['articulo_id'])
                                                         ->where('combinacion_id', $precio['combinacion_id'])
                                                         ->update(['precio' => $precio['precio']]);
                         else
                             DB::table('pedido_combinacion')->where('articulo_id', $precio['articulo_id'])
                                                         ->update(['precio' => $precio['precio']]);
-
+//echo($desdetalle->id.' '.$hastatalle->id.' '.$precio['precio'].'\n');
                         DB::table('pedido_combinacion_talle')->join('pedido_combinacion', 'pedido_combinacion_talle.pedido_combinacion_id', 'pedido_combinacion.id')
                                                         ->where('pedido_combinacion.articulo_id', $precio['articulo_id'])
                                                         ->whereBetween('pedido_combinacion_talle.talle_id', [$desdetalle->id, $hastatalle->id])
@@ -176,6 +181,7 @@ class PrecioImport implements OnEachRow, WithHeadingRow
                 }
             }                    
         }
+        //dd('x');
     }
 
     public function headingRow(): int

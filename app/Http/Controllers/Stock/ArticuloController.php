@@ -335,7 +335,7 @@ class ArticuloController extends Controller
 		  					return $modulo->modulo_nombre;
 						})->all();
 
-        		return view("exports.stock.catalogo",compact('items', 'modulos'));
+				return view("exports.stock.catalogo",compact('items', 'modulos'));
 			}
 		}
 	}

@@ -75,6 +75,7 @@ class PrecioService
 								->where('fechavigencia', '<=', $fecha)
 								->orderBy('fechavigencia', 'desc')
 								->first();
+
 				if (!$precio)
 				{
 					$precio = Precio::with('listaprecios')
@@ -110,7 +111,7 @@ class PrecioService
 		return($array_precio);
 	}
 
-	public function asignaPrecioPorTipoNumeracion($articulo_id, $tiponumeracion_id, $fechavigencia)
+	public function asignaPrecioPorTipoNumeracion($articulo_id, $tiponumeracion_id, $fechavigencia, $combinacion_id = null)
 	{	
 		$listaprecio = Listaprecio::all();
 
@@ -121,7 +122,26 @@ class PrecioService
 			{
 				$lista_id = $lista->id;
 				
-				$precio = Precio::with('listaprecios')
+				if ($combinacion_id)
+				{
+					$precio = Precio::with('listaprecios')
+								->where('articulo_id',$articulo_id)
+								->where('listaprecio_id',$lista_id)
+								->where('combinacion_id',$combinacion_id)
+								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))
+								->orderBy('fechavigencia', 'desc')
+								->first();
+	
+					if (!$precio)
+						$precio = Precio::with('listaprecios')
+								->where('articulo_id',$articulo_id)
+								->where('listaprecio_id',$lista_id)
+								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))
+								->orderBy('fechavigencia', 'desc')
+								->first();
+				}
+				else
+					$precio = Precio::with('listaprecios')
 								->where('articulo_id',$articulo_id)
 								->where('listaprecio_id',$lista_id)
 								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))

@@ -25,6 +25,7 @@ use App\Models\Stock\Color;
 use App\Models\Stock\Forro;
 use App\Models\Stock\Fondo;
 use App\Models\Stock\Talle;
+use App\Models\Stock\Horma;
 use App\Models\Stock\Tipocorte;
 use App\Models\Stock\Material;
 use App\Models\Stock\Materialcapellada;
@@ -1139,11 +1140,16 @@ class OrdentrabajoService
 				$descripcionCombinacion = '';
 				$nombrePlvista = '';
 				$plvistaConConsumo = '';
+				$nombreHorma = '';
 				if ($combinacion)
 				{
 					$codigoCombinacion = $combinacion->codigo;
 					$descripcionCombinacion = $combinacion->nombre;
 					
+					$horma = Horma::find($combinacion->horma_id);
+					if ($horma)
+						$nombreHorma = $horma->nombre;
+
 					$fondo = Fondo::find($combinacion->fondo_id);	
 					if ($fondo)
 						$nombreFondo = $fondo->nombre;
@@ -1465,6 +1471,14 @@ class OrdentrabajoService
 					$reporte .= $d_cli[$pos].'{'.$cliStr.'}'."\n";
 					$pos++;
 				}
+
+				// Agrega Horma
+				if ($pos < 5)
+				{
+					$reporte .= $d_cli[$pos].'{Horma:'.$nombreHorma.'}'."\n";
+					$pos++;					
+				}
+
 				// Completa clientes
 				while ($pos < 5)
 				{

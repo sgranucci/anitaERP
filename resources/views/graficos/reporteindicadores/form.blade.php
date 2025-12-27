@@ -55,7 +55,7 @@
 	<select name="administracionposicion" id="administracionposicion" class="col-lg-3 form-control" required>
     	<option value="">-- Elija tipo de administración --</option>
        	@foreach($administracionPosicion_enum as $value => $administracionposicion)
-			@if ($value == 'A')
+			@if ($value == 'TP')
        			<option value="{{ $value }}" selected>{{ $administracionposicion }}</option>    
 			@else
 				<option value="{{ $value }}">{{ $administracionposicion }}</option>    

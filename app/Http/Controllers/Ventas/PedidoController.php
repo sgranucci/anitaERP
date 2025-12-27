@@ -560,16 +560,16 @@ class PedidoController extends Controller
 		$tipotransacciondefault_id = cache()->get(generaKey('tipotransaccion'));
 
 		// Actualiza los precios antes de enviar al form
-		foreach($pedido->pedido_combinaciones as $item_pedido)
-		{
-			foreach($item_pedido->pedido_combinacion_talles as $talle_item)
-			{
-				// Actualiza el precio del item y talle
-				$precio = $this->precioService->asignaPrecio($item_pedido->articulo_id, $item_pedido->combinacion_id,
-															$talle_item->talle_id, Carbon::now());
-				$talle_item->precio = $precio[0]['precio'];
-			}
-		}
+		//foreach($pedido->pedido_combinaciones as $item_pedido)
+		//{
+		//	foreach($item_pedido->pedido_combinacion_talles as $talle_item)
+		//	{
+		//		// Actualiza el precio del item y talle
+		//		$precio = $this->precioService->asignaPrecio($item_pedido->articulo_id, $item_pedido->combinacion_id,
+		//													$talle_item->talle_id, Carbon::now());
+		//		$talle_item->precio = $precio[0]['precio'];
+		//	}
+		//}
         return view('ventas.pedido.editar', compact('pedido', 'cliente_query', 'condicionventa_query', 
 			'vendedor_query', 'transporte_query', 'mventa_query', 'articulo_query', 'modulo_query', 
 			'listaprecio_query', 'moneda_query', 'articuloall_query', 'articuloxsku_query', 

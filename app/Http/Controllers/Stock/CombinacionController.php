@@ -517,6 +517,7 @@ class CombinacionController extends Controller
 
         $combinacion = Combinacion::select(
 								'combinacion.codigo as codigo',
+								'combinacion.id as idcombinacion',
 								'combinacion.nombre as nombre',
 								'articulo.id as articulo_id',
 								'articulo.sku as sku',
@@ -590,13 +591,14 @@ class CombinacionController extends Controller
 				  	$nombre_pdf = $item->linea;
 					$linea_id = $item->linea_id;
 					$tiponumeracion = Linea::select('tiponumeracion_id')->where('id',$linea_id)->first();
-					
+
 					// Asigna precio por vigencia
 					if ($flPrecio != 'N')
 						$precios = $this->precioService->
 							asignaPrecioPorTipoNumeracion($item->articulo_id, 
 														$tiponumeracion->tiponumeracion_id, 
-														$_fecha);
+														$_fecha,
+														$item->idcombinacion);
 					else
 						$precios[] = ['listaprecio_id' => 1, 'precio' => 0];
  					
