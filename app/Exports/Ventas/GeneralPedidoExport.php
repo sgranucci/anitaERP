@@ -113,7 +113,6 @@ class GeneralPedidoExport implements FromView, WithColumnFormatting, WithMapping
         return [
             'A' => 10,
             'C' => 15,
-			'M' => 5,
 			'N' => 5,
 			'O' => 5,
 			'P' => 5,
@@ -140,7 +139,8 @@ class GeneralPedidoExport implements FromView, WithColumnFormatting, WithMapping
 			'AK' => 5,
 			'AL' => 5,
 			'AM' => 5,
-			'AN' => 8,
+			'AN' => 5,
+			'AO' => 8,
 		];
     }
 

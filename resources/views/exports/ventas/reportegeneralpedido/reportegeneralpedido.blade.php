@@ -66,6 +66,7 @@
 		<th>Combinaci&oacute;n</th>
 		<th>Fondo</th>
 		<th>Color Fondo</th>
+		<th>Observaciones</th>
 		@for ($ii = config('consprod.DESDE_MEDIDA'); $ii <= config('consprod.HASTA_MEDIDA'); $ii++)
 			<th>{{$ii}}</th>
 		@endfor

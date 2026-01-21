@@ -256,6 +256,7 @@ class PedidoService
 								'fondo_id' => $fondo_id,
 								'colorfondo_id' => $colorfondo_id,
 								'nombrecolorfondo' => $nombrecolorfondo,
+								'observacion' => $observacion,
 								'articulo_id' => $articulo_id,
 								'medidas' => $medidas
 							];
@@ -295,6 +296,7 @@ class PedidoService
 						$nombrelinea = $pedido['nombrelinea'];
 						$fondo_id = $pedido['fondo_id'];
 						$articulo_id = $pedido['articulo_id'];
+						$observacion = $pedido['observacion'];
 						$sku = $pedido['sku'];
 						$colorfondo_id = $pedido['colorfondo_id'];
 						$nombrecolorfondo = $pedido['nombrecolorfondo'];
@@ -322,6 +324,7 @@ class PedidoService
 								'nombrelinea' => $nombrelinea,
 								'fondo_id' => $fondo_id,
 								'colorfondo_id' => $colorfondo_id,
+								'observacion' => $observacion,
 								'nombrecolorfondo' => $nombrecolorfondo,
 								'articulo_id' => $articulo_id,
 								'medidas' => $medidas

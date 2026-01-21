@@ -12,6 +12,7 @@
 	<td>{{$data['combinacion']}}</td>
 	<td>{{$data['nombrefondo']}}</td>
 	<td>{{$data['nombrecolorfondo']}}</td>
+	<td>{{$data['observacion']}}</td>
 	@for ($ii = config('consprod.DESDE_MEDIDA'); $ii <= config('consprod.HASTA_MEDIDA'); $ii++)
 		@php $flEncontro = false; @endphp
 		@foreach($data['medidas'] as $medida)
