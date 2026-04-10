@@ -132,6 +132,12 @@
 			</div>
 		</div>
 		<div class="form-group row">
+			<label for="rangodi" class="col-lg-3 col-form-label requerido">Rango Di:</label>
+			<div class="col-lg-4">
+				<input type="number" id="rangodi" name="rangodi" class="form-control" value="{{42}}">
+			</div>
+		</div>		
+		<div class="form-group row">
 			<input type="hidden" id="calculobase" name="calculobase" class="form-control" value="1">
 		</div>
 	</div>

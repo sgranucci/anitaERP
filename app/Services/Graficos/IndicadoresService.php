@@ -152,12 +152,13 @@ class IndicadoresService
     public $flCumpleAdministracion;
     public $flEsperaEntrada;
     public $horaEsperaEntrada ;
+    public $rangoDi;
 
 	public function calculaIndicadores($desdefecha, $hastafecha, $desdehora, $hastahora, $especie, $calculobase, 
                                         $mmcorta, $mmlarga, $compresion, $largovma, $largocci, $largoxtl,
                                         $umbralxtl, $calculobase_enum, $swingSize, $filtroSetup, 
                                         $totalContratos, $administracionposicion, $tiempo, $filtrosMatematicos,
-                                        $gatillo)
+                                        $gatillo, $rangoDi)
 	{
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', '2400');
@@ -186,6 +187,7 @@ class IndicadoresService
         $this->tiempo = $tiempo;
         $this->flSinFiltros = ($filtrosMatematicos == 'S' ? false : true);
         $this->gatillo = $gatillo;
+        $this->rangoDi = $rangoDi;
 
         if ($this->gatillo == 'ATR')
             $this->coeficientes = [1, 1.618, 2, 2.618];
@@ -540,10 +542,13 @@ class IndicadoresService
 
     private function calculaEWO($item, $base, &$smac, &$smal, &$ewo, &$bandaSup, &$bandaInf, &$w4Up1, &$w4Up2, &$w4Dw1, &$w4Dw2)
     {
+        // Define mmLarga y mmCorta para EWO
+        $mmLarga = 276;
+        $mmCorta = 12;
         if ($item >= $this->mmLarga)
         {
-            $smac = $this->promedio($base, $item, 'base', $this->mmCorta);
-            $smal = $this->promedio($base, $item, 'base', $this->mmLarga);
+            $smac = $this->promedio($base, $item, 'base', $mmCorta);
+            $smal = $this->promedio($base, $item, 'base', $mmLarga);
             $ewo = $smac - $smal;
 
             if ($ewo > 0)
@@ -1781,7 +1786,8 @@ class IndicadoresService
                 // Modificacion para nuevo calculo XTL 14/03/25
                 if (//($this->flSinFiltros ? $rrr >= 0. : true) && 
                     $this->datas[$i]['horainicio'] >= '04:00:00' &&
-                    $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00'))
+                    $this->datas[$i]['horainicio'] <= ($flDayLight ? '17:00:00' : '16:00:00') &&
+                    !Self::esFeriado($this->datas[$i]['fecha']))
                 {
                     // Si esta esperando entrada valida si el open es menor o igual o pasan 10 minutos
                     if ($this->flEsperaEntrada)
@@ -1835,30 +1841,28 @@ class IndicadoresService
                     }
                     else
                     {
-                        if ($this->acumFlAcista)
-                        {
-                            // Chequea valor de entrada contra cierre de vela anterior
-                            if ($this->datas[$i]['open'] > $this->datas[$i-1]['close'])
-                            {
-                                $this->flEsperaEntrada = true;
-                                $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
-                                
-                                $this->datas[$i]['entrada'] .= ' Open mayor a close anterior, espera para entrar ';
+                        //if ($this->acumFlAcista)
+                        //{
+                        //    if ($this->datas[$i]['open'] > $this->datas[$i-1]['close'])
+                        //    {
+                        //        $this->flEsperaEntrada = true;
+                        //        $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
+                        //        
+                        //       $this->datas[$i]['entrada'] .= ' Open mayor a close anterior, espera para entrar ';
 
-                            }
-                        }
-                        else
-                        {
-                            // Chequea valor de entrada contra cierre de vela anterior
-                            if ($this->datas[$i]['open'] < $this->datas[$i-1]['close'])
-                            {
-                                $this->flEsperaEntrada = true;
-                                $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
-                                
-                                $this->datas[$i]['entrada'] .= ' Open menor a close anterior, espera para entrar ';
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    if ($this->datas[$i]['open'] < $this->datas[$i-1]['close'])
+                        //    {
+                        //        $this->flEsperaEntrada = true;
+                        //        $this->horaEsperaEntrada = $this->datas[$i]['horainicio'];
+                        //        
+                        //        $this->datas[$i]['entrada'] .= ' Open menor a close anterior, espera para entrar ';
 
-                            }                            
-                        }
+                        //    }                            
+                        //}
                         $this->acumValorEntrada = $this->datas[$i]['open'];
                     }
 
@@ -1933,21 +1937,42 @@ class IndicadoresService
                             $contraSwingBars = $this->datas[$i]['swingBars']-1;
                         }
 
+                        // Busca el anterior swing
+                        // Si no tiene provmin ni provmax busca el primero
+                        if ($this->datas[$i]['provMin'] == 0 && $this->datas[$i]['provMax'] == 0)
+                        {
+                            if ($direccion == 1)
+                                for ($r = $i-1; $r > 0 && $this->datas[$r]['provMin'] == 0; $r--);      
+                            else   
+                                for ($r = $i-1; $r > 0 && $this->datas[$r]['provMax'] == 0; $r--);                                               
+                        }
+                        else
+                        {
+                            for ($r = $i-1; $r > 0 && 
+                                $this->datas[$r]['min'] == 0 && $this->datas[$r]['max'] == 0; $r--);
+                        }
+
+                        // Calcula contraswing
+                        $contraSwingBars = 1;
+                        for ($c = $r-1; $c > 0 && 
+                            $this->datas[$c]['min'] == 0 && $this->datas[$c]['max'] == 0; $c--)
+                            $contraSwingBars++;
+
+                        // Calcula swing
+                        $swingBars = 1;
+                        for ($s = $c-1; $s > 0 && 
+                            $this->datas[$s]['min'] == 0 && $this->datas[$s]['max'] == 0; $s--)
+                            $swingBars++;
+
+                        if ($this->datas[$r]['retroceso'] == 0)
+                            $retroceso = $this->datas[$r]['provRet'];
+                        else
+                            $retroceso = $this->datas[$r]['retroceso'];
+                        
                         if ($swingBars != 0)
                             $relacionVelas = $contraSwingBars / $swingBars;
                         else    
                             $relacionVelas = 0;
-
-                        // Configura retroceso
-                        $retroceso = $this->datas[$i-1]['provRet'];
-                        if ($retroceso == 0)
-                        {
-                            for ($j = $i-1; $j > 0 && $retroceso == 0; $j--)
-                            {
-                                if ($this->datas[$j]['provRet'] != 0)
-                                    $retroceso = $this->datas[$j]['provRet'];
-                            }
-                        }
 
                         $this->calculaDatosXTL($i, $direccion == 1 ? 'ALCISTA' : 'BAJISTA');
 
@@ -4748,14 +4773,19 @@ class IndicadoresService
 
     private function promedio($base, $item, $indice, $mm)
     {
-        for ($ii = $item - $mm, $cant = 0, $acum = 0; $ii < $item - 1; $ii++)
+        $acum = 0;
+        $cant = 0;
+        if ($item > $mm + 1)
         {
-            $acum += $this->datas[$ii][$indice];
-            $cant++;
+            for ($ii = $item - $mm, $cant = 0, $acum = 0; $ii < $item - 1; $ii++)
+            {
+                $acum += $this->datas[$ii][$indice];
+                $cant++;
+            }
         }
-		// Agrega el item actual
+        // Agrega el item actual
         $acum += $base;
-		$cant++;
+        $cant++;
 
         return $acum / ($cant > 0 ? $cant : 1);
     }
@@ -5346,7 +5376,7 @@ class IndicadoresService
 
                 if ($this->acumItem > 1)
                 {
-                    if ($this->acumItem >= $this->mmLarga + 1)
+                    if ($this->acumItem >= 277)
                         $this->calculaEWO($this->acumItem, $base, $smac, $smal, $ewo, $bandaSup, $bandaInf,
                             $w4Up1, $w4Up2, $w4Dw1, $w4Dw2);
 
@@ -5976,12 +6006,12 @@ class IndicadoresService
             $this->datas[$i]['atr21'] = $sum / 21;
         }
 
-        if ($i >= 41)
+        if ($i >= $this->rangoDi-1)
         {
             for ($o = $i, $sum = 0; $o >= $i - 41; $o--)
                 $sum += $this->datas[$o]['trueRange'];
 
-            $this->datas[$i]['atr42'] = $sum / 42;       
+            $this->datas[$i]['atr42'] = $sum / $this->rangoDi;       
         }
 
         if ($i > 0)
@@ -6004,8 +6034,8 @@ class IndicadoresService
                 $sumLow += $this->datas[$o]['auxLow'];
             }
             
-            $this->datas[$i]['diPositivo'] = ($sumHigh / 42) / $this->datas[$i]['atr42'] * 100;
-            $this->datas[$i]['diNegativo'] = ($sumLow / 42) / $this->datas[$i]['atr42'] * 100;
+            $this->datas[$i]['diPositivo'] = ($sumHigh / $this->rangoDi) / $this->datas[$i]['atr42'] * 100;
+            $this->datas[$i]['diNegativo'] = ($sumLow / $this->rangoDi) / $this->datas[$i]['atr42'] * 100;
         }
 
         if ($i > 20)
@@ -6141,14 +6171,27 @@ class IndicadoresService
         // Verifica si no rompe señal con area abierta
         if ($this->flAreaBajista || $this->flAreaAlcista)
         {
-            // Filtro
-            $deltaDi = abs($this->datas[$i]['diPositivo'] - $this->datas[$i]['diNegativo']);
+            // agrego filtro de EWO 
+            $flFiltroEwo = false;
+            if ($this->flAreaAlcista && $this->datas[$i]['ewo'] > 0)
+            {
+                $flFiltroEwo = true;
+                $this->flAreaBajista = false;
+            }
+            if ($this->flAreaBajista && $this->datas[$i]['ewo'] <= 0)
+            {
+                $flFiltroEwo = true;
+                $this->flAreaAlcista = false;
+            }
 
-            //if ($i == 991)
+            // Filtro delta Di
+            $deltaDi = ($this->datas[$i]['diPositivo'] - $this->datas[$i]['diNegativo']);
+
+            //if ($i == 1392)
             //    dd($this->datas[$i]['diPositivo'].' '.$this->datas[$i]['diNegativo'].' '.$deltaDi);
             $flChequeaGatilloAlcista = false;
             $flChequeaGatilloBajista = false;
-            if ($this->flAreaAlcista && ($this->datas[$i]['diPositivo'] >= $this->datas[$i]['diNegativo'] || $deltaDi <= 5))
+            if ($this->flAreaAlcista && $deltaDi >= -5)
             {
                 $flChequeaGatilloAlcista = true;
 
@@ -6157,7 +6200,7 @@ class IndicadoresService
                     $flChequeaGatilloBajista = true;
             }
 
-            if ($this->flAreaBajista && ($this->datas[$i]['diPositivo'] < $this->datas[$i]['diNegativo'] || $deltaDi <= 5))
+            if ($this->flAreaBajista && $deltaDi <= 5)
             {
                 $flChequeaGatilloBajista = true;
                 
@@ -6166,7 +6209,10 @@ class IndicadoresService
                     $flChequeaGatilloAlcista = true;
             }
 
-            if ($flChequeaGatilloAlcista)
+            //if ($i == 3527)
+            //    dd($flChequeaGatilloBajista.' '.$flChequeaGatilloAlcista.' '.$deltaDi.' '.$this->flAreaBajista.' '.$this->flAreaAlcista.' filtro '.$flFiltroEwo.' ewo '.$this->datas[$i]['ewo']);
+
+            if ($flChequeaGatilloAlcista && $flFiltroEwo)
             {
                 // Gatillo con cruce alcista
                 if ($this->datas[$i]['close'] > $this->datas[$i]['atrTotal'] && $this->datas[$i-1]['close'] < $this->datas[$i-1]['atrTotal'])
@@ -6197,7 +6243,7 @@ class IndicadoresService
                     }
                 }
             }
-            if ($flChequeaGatilloBajista)
+            if ($flChequeaGatilloBajista && $flFiltroEwo)
             {
                 // Gatillo con cruce bajista
                 if ($this->datas[$i]['close'] < $this->datas[$i]['atrTotal'] && $this->datas[$i-1]['close'] > $this->datas[$i-1]['atrTotal'])
@@ -6438,5 +6484,15 @@ class IndicadoresService
 
             $this->flDesactivaAdministracion = true;
         }
+    }
+
+    private function esFeriado($fecha)
+    {
+        $fechaLectura = date('Y-m-d', ceil($fecha/1000));
+        
+        return DB::table('anitaERP.feriado')
+                    ->select('fecha','nombre')
+                    ->where('fecha', $fechaLectura)
+                    ->first();
     }
 }

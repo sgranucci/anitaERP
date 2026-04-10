@@ -180,7 +180,8 @@ class GraficosController extends Controller
 						$request->administracionposicion,
 						$request->tiempo,
 						$request->filtrosmatematicos,
-						$request->gatillo);
+						$request->gatillo,
+						$request->rangodi);
 
 		return (new ReporteIndicadoresExport)
 				->parametros($request->desdefecha, 

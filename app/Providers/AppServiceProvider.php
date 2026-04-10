@@ -228,6 +228,11 @@ class AppServiceProvider extends ServiceProvider
         	'App\Repositories\Configuracion\PadroncabaRepository',
     	);
 
+		$this->app->bind(
+        	'App\Repositories\Configuracion\FeriadoRepositoryInterface',
+        	'App\Repositories\Configuracion\FeriadoRepository',
+    	);
+
 	    $this->app->bind(
         	'App\Repositories\Stock\MaterialcapelladaRepositoryInterface',
         	'App\Repositories\Stock\MaterialcapelladaRepository',

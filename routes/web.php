@@ -138,6 +138,17 @@ Route::put('configuracion/condicioniva/{id}', 'Configuracion\CondicionivaControl
 Route::delete('configuracion/condicioniva/{id}', 'Configuracion\CondicionivaController@eliminar')->name('eliminar_condicioniva');
 
 /* 
+ * Feriados
+ */
+
+ Route::get('configuracion/feriado', 'Configuracion\FeriadoController@index')->name('feriado');
+ Route::get('configuracion/feriado/crear', 'Configuracion\FeriadoController@crear')->name('crear_feriado');
+ Route::post('configuracion/feriado', 'Configuracion\FeriadoController@guardar')->name('guardar_feriado');
+ Route::get('configuracion/feriado/{id}/editar', 'Configuracion\FeriadoController@editar')->name('editar_feriado');
+ Route::put('configuracion/feriado/{id}', 'Configuracion\FeriadoController@actualizar')->name('actualizar_feriado');
+ Route::delete('configuracion/feriado/{id}', 'Configuracion\FeriadoController@eliminar')->name('eliminar_feriado');
+
+/* 
  * Fondos
  */
 
