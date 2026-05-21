@@ -567,7 +567,7 @@ class FacturanteService
 				// Graba climov
 				$fecha = Carbon::now();
 				$climov = Self::grabaClimov($cliente, $fecha, $comprobante, 
-											$letra, $puntoVenta, $numeroPre, $total, $moneda_id);
+											$letra, $puntoVenta, $numeroPre, abs($total), $moneda_id);
 
 				// Graba venta
 

@@ -6123,7 +6123,8 @@ class IndicadoresService
 
             $this->datas[$i]['entrada'] .= 'ABRE AREA BAJISTA ';
         }
-
+//if ($i == 4831)
+//    dd('area alcista '.$this->flAreaAlcista.' ultimo minimo provisorio '.$this->ultimoMinimoProvisorio.' ultimo minimo '.$ultimoMinimo.' max P '.$this->datas[$i]['high'].' Ult max '.$ultimoMaximo);
         // Verifica cierre de area
         if ($this->flAreaAlcista && $this->ultimoMinimoProvisorio < $ultimoMinimo && $this->ultimoMinimoProvisorio != 0)
         {

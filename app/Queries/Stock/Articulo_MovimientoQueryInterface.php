@@ -11,5 +11,10 @@ interface Articulo_MovimientoQueryInterface
                                             $desdelote, $hastalote, $deposito_id);
     public function leeStockPorLote($lote, $articulo_id, $combinacion_id);
     public function buscaLoteImportacion($lotestock_id);
+    public function generaDatosRepArticulosVendidos($tipoOrigen, $desdefecha, $hastafecha,
+                                            $desdearticulo_id, $hastaarticulo_id,
+                                            $desdecliente_id, $hastacliente_id,
+                                            $desdelinea_id, $hastalinea_id,
+                                            $mventa_id);
 }
 

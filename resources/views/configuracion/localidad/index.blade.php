@@ -25,7 +25,8 @@ Localidades
                 </div>
             </div>
             <div class="card-body table-responsive p-0">
-                <table class="table table-striped table-bordered table-hover" id="tabla-data">
+                @include('includes.exportar-tabla', ['ruta' => 'lista_localidad', 'busqueda' => $busqueda])
+                <table class="table table-striped table-bordered table-hover" id="tabla-paginada">
                     <thead>
                         <tr>
                             <th class="width20">ID</th>
@@ -38,14 +39,14 @@ Localidades
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($datas as $data)
+                        @foreach ($localidades as $data)
                         <tr>
                             <td>{{$data->id}}</td>
                             <td>{{$data->nombre}}</td>
                             <td>{{$data->abreviatura}}</td>
                             <td>{{$data->jurisdiccion}}</td>
                             <td>{{$data->codigo}}</td>
-                            <td>{{$data->provincias->nombre}}</td>
+                            <td>{{$data->nombreprovincia??''}}</td>
                             <td>
                        			@if (can('editar-localidades', false))
                                 	<a href="{{route('editar_localidad', ['id' => $data->id])}}" class="btn-accion-tabla tooltipsC" title="Editar este registro">
@@ -69,4 +70,5 @@ Localidades
         </div>
     </div>
 </div>
+{{ $localidades->appends(['busqueda' => $busqueda])->links() }}
 @endsection

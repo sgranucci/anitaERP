@@ -233,6 +233,11 @@ class AppServiceProvider extends ServiceProvider
         	'App\Repositories\Configuracion\FeriadoRepository',
     	);
 
+		$this->app->bind(
+        	'App\Repositories\Configuracion\LocalidadRepositoryInterface',
+        	'App\Repositories\Configuracion\LocalidadRepository',
+    	);
+
 	    $this->app->bind(
         	'App\Repositories\Stock\MaterialcapelladaRepositoryInterface',
         	'App\Repositories\Stock\MaterialcapelladaRepository',

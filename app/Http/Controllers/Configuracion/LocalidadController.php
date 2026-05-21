@@ -5,31 +5,45 @@ namespace App\Http\Controllers\Configuracion;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Configuracion\Localidad;
+use App\Repositories\Configuracion\LocalidadRepositoryInterface;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\ValidacionLocalidad;
 use App\Models\Configuracion\Provincia;
 
 class LocalidadController extends Controller
 {
+    private $localidadRepository;
+
+    public function __construct(
+            LocalidadRepositoryInterface $localidadRepository
+            )
+    {
+        $this->localidadRepository = $localidadRepository;    
+    }    
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-	  	ini_set('memory_limit', '512M');
         can('listar-localidades');
-        $datas = Localidad::with('provincias')->orderBy('nombre')->paginate(15);
 
-		if ($datas->isEmpty())
+        $busqueda = $request->busqueda;
+
+		$localidades = $this->localidadRepository->leeLocalidad($busqueda, true);
+
+        if ($localidades->isEmpty())
 		{
 			$Localidad = new Localidad();
         	$Localidad->sincronizarConAnita();
 	
-        	$datas = Localidad::with('provincias')->orderBy('nombre')->paginate(15);
+            $localidades = $this->localidadRepository->leeLocalidad($busqueda, true);
 		}
-        return view('configuracion.localidad.index', compact('datas'));
+
+        $datas = ['localidades' => $localidades, 'busqueda' => $busqueda];
+
+        return view('configuracion.localidad.index', $datas);
     }
 
 	public function leerLocalidades($id)

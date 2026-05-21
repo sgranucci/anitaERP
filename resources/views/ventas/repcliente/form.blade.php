@@ -51,6 +51,32 @@
 	</select>
 </div>
 <div class="form-group row">
+	<label for="desdeprovincia" class="col-lg-3 col-form-label ">Desde provincia</label>
+	<select name="desdeprovincia_id" id="desdeprovincia_id" data-placeholder="Provincia" class="col-lg-4 form-control " data-fouc>
+		<option value="">-- Seleccionar provincia --</option>
+		@foreach($provincia_query as $key => $value)
+			@if( (int) $value->id == '0')
+				<option value="{{ $value->id }}" selected="select">{{ $value->nombre }}</option>
+			@else
+				<option value="{{ $value->id }}">{{ $value->nombre }}</option>
+			@endif
+		@endforeach
+	</select>
+</div>
+<div class="form-group row">
+	<label for="hastaprovincia" class="col-lg-3 col-form-label ">Hasta provincia</label>
+	<select name="hastaprovincia_id" id="hastaprovincia_id" data-placeholder="Provincia" class="col-lg-4 form-control " data-fouc>
+		<option value="">-- Seleccionar provincia --</option>
+		@foreach($provincia_query as $key => $value)
+			@if( (int) $value->id == '99999999')
+				<option value="{{ $value->id }}" selected="select">{{ $value->nombre }}</option>
+			@else
+				<option value="{{ $value->id }}">{{ $value->nombre }}</option>
+			@endif
+		@endforeach
+	</select>
+</div>
+<div class="form-group row">
 	<label for="estado" class="col-lg-3 col-form-label requerido">Estado del pedido</label>
    	<select name="estado" id="estado" data-placeholder="Estado del pedido" class="col-lg-4 form-control required" data-fouc>
    		<option value="">-- Seleccionar estado del pedido --</option>

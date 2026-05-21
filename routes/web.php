@@ -126,6 +126,10 @@ Route::delete('configuracion/localidad/{id}', 'Configuracion\LocalidadController
 Route::get('configuracion/leerlocalidades/{id}', 'Configuracion\LocalidadController@leerLocalidades')->name('leer_localidad');
 Route::get('configuracion/leercodigopostal/{id}', 'Configuracion\LocalidadController@leerCodigoPostal')->name('leer_codigo_postal');
 
+Route::get('configuracion/listalocalidad/{formato?}/{busqueda?}', 'Configuracion\LocalidadController@listar')->name('lista_localidad');
+Route::post('configuracion/localidad/consultalocalidad', 'Configuracion\LocalidadController@consultaLocalidad')->name('consulta_localidad');
+Route::get('configuracion/leerlocalidad/{localidad_id}', 'Configuracion\LocalidadController@leeUnaLocalidad')->name('leer_una_localidad');
+
 /* 
  * Condiciones de iva
  */
@@ -638,6 +642,10 @@ Route::post('ventas/crearemisionot', 'Ventas\OrdentrabajoController@crearEmision
 // Clientes
 Route::get('ventas/repcliente', 'Ventas\ClienteController@indexReporteCliente')->name('rep_cliente');
 Route::post('ventas/crearrepcliente', 'Ventas\ClienteController@crearReporteCliente')->name('crear_repcliente');
+
+// Artículos vendidos (importados / nacionales)
+Route::get('ventas/reparticulovendido', 'Ventas\RepArticuloVendidoController@index')->name('rep_articulovendido');
+Route::post('ventas/crearreparticulovendido', 'Ventas\RepArticuloVendidoController@crearReporteArticuloVendido')->name('crear_reparticulovendido');
 
 /* 
  * Vendedores

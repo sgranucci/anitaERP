@@ -22,6 +22,7 @@
 		<th>W4up2</th>
 		<th>W4dw1</th>
 		<th>W4dw2</th>
+		{{--
 		<th>RF Lim</th>
 		<th>RFE (Ext)</th>
 		<th>RFE (Int)</th>
@@ -39,6 +40,7 @@
 		<th>obb</th>
 		<th>osb</th>
 		<th>Reg.de volatilidad</th>
+		--}}
 		<th>INERTIA</th>
 		<th>Estado</th>
 		<th>TQR Verde</th>
@@ -47,7 +49,7 @@
 		<th>TQR Rojo</th>
 		<th>Stop TQR Rojo</th>
 		<th>Tgt TQR Rojo</th>
-		<th>Peso XTL</th>
+		{{--<th>Peso XTL</th>--}}
 		<th>ATR 21</th>
 		<th>Prov.min.</th>
 		<th>Prov.max.</th>
@@ -107,6 +109,7 @@
 			<td align="right">{{number_format(floatval($data['w4Up2']), 5, ",", ".")}}</td>	
 			<td align="right">{{number_format(floatval($data['w4Dw1']), 5, ",", ".")}}</td>	
 			<td align="right">{{number_format(floatval($data['w4Dw2']), 5, ",", ".")}}</td>	
+			{{--
 			<td align="right">{{number_format(floatval($data['rfLim']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['rfeExt']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['rfeInt']), 2, ",", ".")}}</td>
@@ -124,6 +127,7 @@
 			<td align="right">{{number_format(floatval($data['obb']), 0, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['osb']), 0, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['regimenVolatilidad']), 0, ",", ".")}}</td>
+			--}}
 			<td align="right">{{number_format(floatval($data['inertia']), 9, ",", ".")}}</td>
 			<td align="right">{{$data['estado']}}</td>
 			<td align="right">{{number_format(floatval($data['TQRVerde']), 4, ",", ".")}}</td>
@@ -132,7 +136,9 @@
 			<td align="right">{{number_format(floatval($data['TQRRojo']), 4, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['stopTQRRojo']), 4, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['tgtTQRRojo']), 4, ",", ".")}}</td>
+			{{--
 			<td align="right">{{number_format(floatval($data['pesoXTL']), 0, ",", ".")}}</td>
+			--}}
 			<td align="right">{{number_format(floatval($data['atr21']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMin']), 2, ",", ".")}}</td>
 			<td align="right">{{number_format(floatval($data['provMax']), 2, ",", ".")}}</td>

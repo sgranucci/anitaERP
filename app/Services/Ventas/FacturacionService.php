@@ -1544,7 +1544,12 @@ class FacturacionService
 				$deposito = 1;
 
 			if ($ifx_server == 'IFX_SERVER_LOCAL')
-				$deposito = 10;
+			{
+				if ($puntoventa == 27)
+					$deposito = 27;
+				else
+					$deposito = 10;
+			}
 
 			if ($flGrabaStock)
 			{

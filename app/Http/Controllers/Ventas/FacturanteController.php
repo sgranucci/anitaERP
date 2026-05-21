@@ -57,7 +57,7 @@ class FacturanteController extends Controller
             '3' => 'Go',
             '4' => 'Transferencia',
             '5' => 'Nube BOA',
-            '6' => 'No transfiere'
+            '6' => 'No transfiere',
 		    ];          
         
         $desdefecha = $parameters['desdefecha'];
@@ -87,7 +87,8 @@ class FacturanteController extends Controller
                 if (!isset($datas[$i]->Prefijo))
                   continue;
                 
-                if ($datas[$i]->Prefijo == 21)
+                if ($datas[$i]->Prefijo == 21 ||
+                    $datas[$i]->Prefijo == 27)
                   $datas[$i]->mediopago = '1';
                 elseif ($datas[$i]->Prefijo == 23)
                   $datas[$i]->mediopago = '2';
