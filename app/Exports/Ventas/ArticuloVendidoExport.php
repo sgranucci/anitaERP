@@ -12,10 +12,13 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMapping, ShouldAutoSize, WithStyles, WithColumnWidths, WithTitle
+class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMapping, ShouldAutoSize, WithStyles, WithColumnWidths, WithEvents, WithTitle
 {
     use Exportable;
 
@@ -30,6 +33,8 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
     private $hastalinea_id;
     private $mventa_id;
     private $nombremventa;
+    private $logoPath;
+    private $filaEncabezadoColumnas = 5;
 
     private $articulo_movimientoService;
 
@@ -57,13 +62,17 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
             ? 'LISTADO DE VENTAS POR ARTICULO NACIONAL CON IDENTIFICACION DE CLIENTE'
             : 'LISTADO DE VENTAS POR ARTICULO IMPORTADO CON IDENTIFICACION DE CLIENTE';
 
+        $this->logoPath = $this->resolverRutaLogo();
+
         return view('exports.ventas.reportearticulovendido.reportearticulovendido', [
             'titulo' => $titulo,
+            'empresa' => config('app.empresa'),
             'articulos' => $reporte['articulos'],
             'totales' => $reporte['totales'],
             'desdefecha' => $this->desdefecha,
             'hastafecha' => $this->hastafecha,
             'marca' => $this->nombremventa,
+            'filaEncabezadoColumnas' => $this->filaEncabezadoColumnas,
         ]);
     }
 
@@ -80,22 +89,88 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 11, 'name' => 'Arial']],
+            2 => ['font' => ['bold' => true, 'size' => 14, 'name' => 'Arial', 'color' => ['rgb' => '17202A']]],
+            $this->filaEncabezadoColumnas => [
+                'font' => ['bold' => true, 'size' => 10, 'name' => 'Arial', 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'color' => ['rgb' => '4472C4'],
+                ],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            ],
         ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+
+                if ($this->logoPath && file_exists($this->logoPath)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Logo');
+                    $drawing->setDescription('Logo empresa');
+                    $drawing->setPath($this->logoPath);
+                    $drawing->setHeight(52);
+                    $drawing->setCoordinates('A1');
+                    $drawing->setOffsetX(5);
+                    $drawing->setOffsetY(5);
+                    $drawing->setWorksheet($sheet);
+                }
+
+                $sheet->getRowDimension(1)->setRowHeight(48);
+                $sheet->mergeCells('B1:I1');
+                $sheet->mergeCells('B2:I2');
+                $sheet->mergeCells('B3:I3');
+                $sheet->getStyle('B1:I1')->getAlignment()->setVertical(
+                    \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
+                );
+
+                $sheet->freezePane('A'.($this->filaEncabezadoColumnas + 1));
+
+                $ultimaFila = $sheet->getHighestRow();
+                $sheet->getStyle('A'.$this->filaEncabezadoColumnas.':I'.$this->filaEncabezadoColumnas)
+                    ->getBorders()->getAllBorders()
+                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            },
+        ];
+    }
+
+    private function resolverRutaLogo(): string
+    {
+        $nombreMarca = 'Ferli';
+        if ($this->nombremventa && $this->nombremventa != 'Todas las marcas') {
+            $nombreMarca = preg_replace('/[^A-Za-z0-9]/', '', $this->nombremventa);
+        }
+
+        $rutaMarca = public_path('storage/imagenes/logos/logo'.$nombreMarca.'.jpg');
+        if (file_exists($rutaMarca)) {
+            return $rutaMarca;
+        }
+
+        $rutaFerli = public_path('storage/imagenes/logos/logoFerli.jpg');
+        if (file_exists($rutaFerli)) {
+            return $rutaFerli;
+        }
+
+        $logos = glob(public_path('storage/imagenes/logos/logo*.jpg'));
+
+        return $logos ? $logos[0] : '';
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 12,
-            'B' => 6,
-            'C' => 18,
-            'D' => 8,
-            'E' => 10,
-            'F' => 4,
-            'G' => 16,
-            'H' => 8,
-            'I' => 35,
+            'A' => 14,
+            'B' => 7,
+            'C' => 20,
+            'D' => 10,
+            'E' => 12,
+            'F' => 5,
+            'G' => 18,
+            'H' => 10,
+            'I' => 38,
         ];
     }
 
