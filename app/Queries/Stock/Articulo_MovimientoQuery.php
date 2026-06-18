@@ -168,7 +168,8 @@ class Articulo_MovimientoQuery implements Articulo_MovimientoQueryInterface
                             'venta.numerocomprobante as numerocomprobante',
                             'puntoventa.codigo as puntoventa',
                             'cliente.codigo as codigocliente',
-                            'cliente.nombre as nombrecliente')
+                            'cliente.nombre as nombrecliente',
+                            'lote_importacion.numerodespacho as numerodespacho')
                             ->joinSub($ventaEmisionAgg, 'venta_emision_agg', function ($join) {
                                 $join->on('venta_emision_agg.pedido_combinacion_id', 'articulo_movimiento.pedido_combinacion_id')
                                     ->on('venta_emision_agg.articulo_id', 'articulo_movimiento.articulo_id')
@@ -181,6 +182,9 @@ class Articulo_MovimientoQuery implements Articulo_MovimientoQueryInterface
                             ->join('tipotransaccion', 'tipotransaccion.id', 'venta.tipotransaccion_id')
                             ->join('puntoventa', 'puntoventa.id', 'venta.puntoventa_id')
                             ->join('cliente', 'cliente.id', 'venta.cliente_id')
+                            ->leftJoin('lote as lote_importacion', function ($join) use ($loteimportacionExpr) {
+                                $join->on('lote_importacion.id', '=', DB::raw('('.$loteimportacionExpr.')'));
+                            })
                             ->whereNull('articulo_movimiento.deleted_at')
                             ->whereNull('venta.deleted_at')
                             ->whereNotNull('articulo_movimiento.pedido_combinacion_id')

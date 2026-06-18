@@ -404,6 +404,7 @@ class Articulo_MovimientoService
 				'fecha' => $movimiento->fecha,
 				'tipocomprobante' => $movimiento->tipocomprobante,
 				'nrocomprobante' => $nroComprobante,
+				'numerodespacho' => $movimiento->numerodespacho ?? '',
 				'cantidad' => $cantidadPos,
 				'cantidad_mov' => $cantidad,
 				'unidad' => $unidad,

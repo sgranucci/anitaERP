@@ -59,53 +59,12 @@ class PrecioService
 				if ($linea)
 					$tiponumeracion_id = $linea->tiponumeracion_id;
 			}
+			$fecha = $this->normalizaFechaVigencia($fechavigencia);
 			foreach($talle as $value)
 			{
 				$lista = $this->asignaListaPrecio($value->nombre, $tiponumeracion_id);
-
-				if (gettype($fechavigencia) == "string")
-					$fecha = $fechavigencia;
-				else
-					$fecha = date('Y-m-d', strtotime($fechavigencia));
-
-				$precio = Precio::with('listaprecios')
-								->where('articulo_id',$articulo_id)
-								->where('combinacion_id', $combinacion_id)
-								->where('listaprecio_id',$lista)
-								->where('fechavigencia', '<=', $fecha)
-								->orderBy('fechavigencia', 'desc')
-								->first();
-
-				if (!$precio)
-				{
-					$precio = Precio::with('listaprecios')
-								->where('articulo_id',$articulo_id)
-								->where('listaprecio_id',$lista)
-								->where('fechavigencia', '<=', $fecha)
-								->orderBy('fechavigencia', 'desc')
-								->first();
-				}
-				if ($precio)
-				{
-					$precio_talle = $precio->precio;
-					$listaprecio_id = $precio->listaprecio_id;
-					$moneda_id = $precio->moneda_id;
-					$incluyeimpuesto = $precio->listaprecios->incluyeimpuesto;
-				}
-				else
-				{
-					$precio_talle = 0;
-					$listaprecio_id = 0;
-					$moneda_id = 1;
-					$incluyeimpuesto = 1;
-				}
-
-				$array_precio[] = [
-									'precio'=>$precio_talle,
-				  					'listaprecio_id'=>$listaprecio_id,
-				  					'moneda_id'=>$moneda_id,
-				  					'incluyeimpuesto'=>$incluyeimpuesto,
-				  					];
+				$precio = $this->resuelvePrecio($articulo_id, $lista, $combinacion_id, $fecha);
+				$array_precio[] = $this->datosPrecio($precio);
 			}
 		}
 		return($array_precio);
@@ -114,64 +73,83 @@ class PrecioService
 	public function asignaPrecioPorTipoNumeracion($articulo_id, $tiponumeracion_id, $fechavigencia, $combinacion_id = null)
 	{	
 		$listaprecio = Listaprecio::all();
+		$fecha = $this->normalizaFechaVigencia($fechavigencia);
 
 		$array_precio = [];
 		foreach($listaprecio as $lista)
 		{
 			if ($tiponumeracion_id == $lista->tiponumeracion_id)
 			{
-				$lista_id = $lista->id;
-				
-				if ($combinacion_id)
-				{
-					$precio = Precio::with('listaprecios')
-								->where('articulo_id',$articulo_id)
-								->where('listaprecio_id',$lista_id)
-								->where('combinacion_id',$combinacion_id)
-								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))
-								->orderBy('fechavigencia', 'desc')
-								->first();
-	
-					if (!$precio)
-						$precio = Precio::with('listaprecios')
-								->where('articulo_id',$articulo_id)
-								->where('listaprecio_id',$lista_id)
-								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))
-								->orderBy('fechavigencia', 'desc')
-								->first();
-				}
-				else
-					$precio = Precio::with('listaprecios')
-								->where('articulo_id',$articulo_id)
-								->where('listaprecio_id',$lista_id)
-								->whereDate('fechavigencia', '<=', date('Y-m-d', strtotime($fechavigencia)))
-								->orderBy('fechavigencia', 'desc')
-								->first();
-	
-				if ($precio)
-				{
-					$precio_talle = $precio->precio;
-					$listaprecio_id = $precio->listaprecio_id;
-					$moneda_id = $precio->moneda_id;
-					$incluyeimpuesto = $precio->listaprecios->incluyeimpuesto;
-				}
-				else
-				{
-					$precio_talle = 0;
-					$listaprecio_id = 0;
-					$moneda_id = 1;
-					$incluyeimpuesto = 1;
-				}
-
-				$array_precio[] = [
-					'precio'=>$precio_talle,
-					'listaprecio_id'=>$listaprecio_id,
-					'moneda_id'=>$moneda_id,
-					'incluyeimpuesto'=>$incluyeimpuesto,
-					];
+				$precio = $this->resuelvePrecio($articulo_id, $lista->id, $combinacion_id, $fecha);
+				$array_precio[] = $this->datosPrecio($precio);
 			}
 		}
 		return($array_precio);
+	}
+
+	private function normalizaFechaVigencia($fechavigencia)
+	{
+		if (gettype($fechavigencia) == "string")
+			return $fechavigencia;
+
+		return date('Y-m-d', strtotime($fechavigencia));
+	}
+
+	/**
+	 * Resuelve precio por vigencia: un precio genérico (combinación 0/NULL) más reciente
+	 * que el específico de la combinación pedida aplica a todas las combinaciones.
+	 */
+	private function resuelvePrecio($articulo_id, $listaprecio_id, $combinacion_id, $fecha)
+	{
+		if (!$listaprecio_id)
+			return null;
+
+		if (empty($combinacion_id))
+			$combinacion_id = null;
+
+		$precioGenerico = Precio::with('listaprecios')
+			->where('articulo_id', $articulo_id)
+			->where('listaprecio_id', $listaprecio_id)
+			->whereNull('combinacion_id')
+			->where('fechavigencia', '<=', $fecha)
+			->orderBy('fechavigencia', 'desc')
+			->first();
+
+		if (!$combinacion_id)
+			return $precioGenerico;
+
+		$precioCombinacion = Precio::with('listaprecios')
+			->where('articulo_id', $articulo_id)
+			->where('listaprecio_id', $listaprecio_id)
+			->where('combinacion_id', $combinacion_id)
+			->where('fechavigencia', '<=', $fecha)
+			->orderBy('fechavigencia', 'desc')
+			->first();
+
+		if ($precioGenerico && (!$precioCombinacion || $precioGenerico->fechavigencia >= $precioCombinacion->fechavigencia))
+			return $precioGenerico;
+
+		return $precioCombinacion ?: $precioGenerico;
+	}
+
+	private function datosPrecio($precio)
+	{
+		if ($precio)
+		{
+			return [
+				'precio' => $precio->precio,
+				'listaprecio_id' => $precio->listaprecio_id,
+				'moneda_id' => $precio->moneda_id,
+				'incluyeimpuesto' => $precio->listaprecios->incluyeimpuesto,
+			];
+		}
+
+		return [
+			'precio' => 0,
+			'listaprecio_id' => 0,
+			'moneda_id' => 1,
+			'incluyeimpuesto' => 1,
+		];
 	}
 
 	public static function asignaPrecioPorLista($articulo_id, $listaprecio_id, $fechavigencia)

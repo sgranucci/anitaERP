@@ -120,9 +120,9 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
                 }
 
                 $sheet->getRowDimension(1)->setRowHeight(48);
-                $sheet->mergeCells('B1:I1');
-                $sheet->mergeCells('B2:I2');
-                $sheet->mergeCells('B3:I3');
+                $sheet->mergeCells('B1:J1');
+                $sheet->mergeCells('B2:J2');
+                $sheet->mergeCells('B3:J3');
                 $sheet->getStyle('B1:I1')->getAlignment()->setVertical(
                     \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
                 );
@@ -130,7 +130,7 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
                 $sheet->freezePane('A'.($this->filaEncabezadoColumnas + 1));
 
                 $ultimaFila = $sheet->getHighestRow();
-                $sheet->getStyle('A'.$this->filaEncabezadoColumnas.':I'.$this->filaEncabezadoColumnas)
+                $sheet->getStyle('A'.$this->filaEncabezadoColumnas.':J'.$this->filaEncabezadoColumnas)
                     ->getBorders()->getAllBorders()
                     ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
             },
@@ -165,12 +165,13 @@ class ArticuloVendidoExport implements FromView, WithColumnFormatting, WithMappi
             'A' => 14,
             'B' => 7,
             'C' => 20,
-            'D' => 10,
-            'E' => 12,
-            'F' => 5,
-            'G' => 18,
-            'H' => 10,
-            'I' => 38,
+            'D' => 14,
+            'E' => 10,
+            'F' => 12,
+            'G' => 5,
+            'H' => 18,
+            'I' => 10,
+            'J' => 38,
         ];
     }
 

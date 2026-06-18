@@ -1,5 +1,5 @@
 <tr style="background-color: #FF9900; font-family: Arial; font-size: 10pt; font-weight: bold;">
-    <td colspan="3" style="border: 1px solid #CC7A00;">
+    <td colspan="4" style="border: 1px solid #CC7A00;">
         Total {{ $articulo['codigo'] }} {{ \Illuminate\Support\Str::limit($articulo['nombre'], 20, '') }}
     </td>
     <td style="border: 1px solid #CC7A00; text-align: right;">{{ number_format($articulo['total_cantidad'], 0) }}</td>
