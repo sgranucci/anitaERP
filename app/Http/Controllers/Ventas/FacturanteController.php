@@ -68,24 +68,34 @@ class FacturanteController extends Controller
         if(!$validator->fails()) {
               $retorno = $this->facturanteService->listadoComprobanteFull($parameters);
 
+              if ($retorno instanceof \Exception)
+              {
+                  return redirect()->route('crear_importacion_facturas_tiendanube')
+                      ->with('mensaje', 'Error al leer Facturante: '.$retorno->getMessage());
+              }
+
+              if ($retorno === null)
+              {
+                  return redirect()->route('crear_importacion_facturas_tiendanube')
+                      ->with('mensaje', 'No hay comprobantes en Facturante para el periodo seleccionado.');
+              }
+
               if (is_array($retorno))
                 $datas = $retorno;
               else
               {
-                // Convierte en coleccion al ser 1 solo item
-                $datas = json_encode($retorno);
-
-                $d = json_decode(stripslashes($datas));
-
-                $data = collect([$d]);
-                $datas = $data;
+                $datas = collect([$retorno]);
               }
 
+              $totalFacturante = 0;
+              $yaImportados = 0;
               $arraySalida = [];
               for ($i = 0; $i < count($datas); $i++)
               {
                 if (!isset($datas[$i]->Prefijo))
                   continue;
+
+                $totalFacturante++;
                 
                 if ($datas[$i]->Prefijo == 21 ||
                     $datas[$i]->Prefijo == 27)
@@ -104,36 +114,46 @@ class FacturanteController extends Controller
                   case 'FB':
                   case 'FC':
                     $tipoComprobante = 'FAC';
-                    $signo = 1.;
                     break;
                   case 'NCA':
                   case 'NCB':
                   case 'NCC':
                     $tipoComprobante = 'NCD';
-                    $signo = -1.;
                     break;
                   case 'NDA':
                   case 'NDB':
                   case 'NDC':
                     $tipoComprobante = 'NDB';
-                    $signo = 1.;
                     break;
+                  default:
+                    $tipoComprobante = substr($datas[$i]->TipoComprobante, 0, 3);
                 }
                 $venta = $this->facturanteService->leeComprobante($tipoComprobante, $letra, 
                   $datas[$i]->Prefijo, $datas[$i]->Numero);
-                if (isset($venta[0]->ven_nro) ? $venta[0]->ven_nro != $datas[$i]->Numero : true)
-                //  if ($datas[$i]->Numero > 12307 && $datas[$i]->Numero < 12337)
-                    $arraySalida[] = $datas[$i];
+                if (isset($venta[0]->ven_nro) && $venta[0]->ven_nro == $datas[$i]->Numero)
+                {
+                  $yaImportados++;
+                  continue;
+                }
+
+                $arraySalida[] = $datas[$i];
               }
 
               $datas = $arraySalida;
-//dd($datas);
-              if (isset($datas[0]->TipoComprobante))
+              $pendientes = count($datas);
+
+              if ($pendientes > 0 && isset($datas[0]->TipoComprobante))
                 return view('ventas.facturante.index', compact('datas', 'desdefecha', 'hastafecha', 'medioPago_enum'));
-              else
+
+              if ($totalFacturante == 0)
               {
-                    return redirect('ventas/crearimportacionfacturastiendanube')->with('mensaje', 'Error de lectura');
+                  return redirect()->route('crear_importacion_facturas_tiendanube')
+                      ->with('mensaje', 'No hay comprobantes en Facturante para el periodo seleccionado.');
               }
+
+              return redirect()->route('crear_importacion_facturas_tiendanube')
+                  ->with('mensaje', 'Los '.$yaImportados.' comprobante(s) del periodo ya estan importados en administracion.'
+                      .' Use Verificar importacion del periodo para revisar admin y stock Lugano.');
            } else {
               $errors = $validator->errors();
               return response()->json($errors->all());
@@ -146,9 +166,20 @@ class FacturanteController extends Controller
         ini_set('memory_limit', '-1');
         ini_set('max_execution_time', '2400');
 
-        $datos = json_decode($request->datos,true);
+        $datos = json_decode($request->datos, true) ?? [];
+
+        if (count($datos) === 0) {
+            return response()->json([
+                'error' => 'No se recibieron facturas para importar.'
+            ], 422);
+        }
 
         $qFacturas = count($datos);
+        $resumen = [
+            'grabadas' => 0,
+            'omitidas' => [],
+            'conflictos' => []
+        ];
         //$qFacturas = 1;
         for ($ii = 0; $ii < $qFacturas; $ii++)
         {
@@ -169,7 +200,21 @@ class FacturanteController extends Controller
                                           $datos[$ii]['mediopago']);
                                     
               if ($ret['error'] != 'Success')
-                return($ret);
+                return response()->json($ret);
+
+              $estado = $ret['estado'] ?? 'grabada';
+              if ($estado === 'omitida')
+              {
+                $resumen['omitidas'][] = $ret['comprobante'];
+                continue;
+              }
+              if ($estado === 'conflicto')
+              {
+                $resumen['conflictos'][] = $ret['mensaje'];
+                continue;
+              }
+
+              $resumen['grabadas']++;
                             
               $signo = 1;
               if (substr($datos[$ii]['tipocomprobante'], 0, 2) == "NC")
@@ -181,7 +226,111 @@ class FacturanteController extends Controller
 
         // Graba PRE con asiento contable
         $this->facturanteService->grabaPre(Carbon::now());
-        return ($ret);
+
+        $respuesta = [
+            'error' => '',
+            'mensaje' => $this->facturanteService->armaMensajeResumenFacturacion($resumen),
+            'resumen' => $resumen
+        ];
+
+        if ($request->filled('desdefecha') && $request->filled('hastafecha'))
+        {
+            $verificacion = $this->facturanteService->verificarPeriodoFacturante(
+                $request->desdefecha,
+                $request->hastafecha
+            );
+            if (!isset($verificacion['error']))
+            {
+                $respuesta['verificacion'] = $verificacion['resumen']['mensaje'];
+                $respuesta['todo_ok'] = $verificacion['resumen']['todo_ok'];
+            }
+        }
+
+        return response()->json($respuesta);
+    }
+
+    public function recuperarStockLocal(Request $request)
+    {
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', '2400');
+
+        $rules = [
+            'desdefecha' => 'required',
+            'hastafecha' => 'required'
+        ];
+        $messages = [
+            'desdefecha.required' => 'Fecha desde es requerida.',
+            'hastafecha.required' => 'Fecha hasta es requerida.',
+        ];
+
+        $validator = \Validator::make($request->all(), $rules, $messages);
+        if ($validator->fails())
+            return redirect()->route('crear_importacion_facturas_tiendanube')
+                ->withErrors($validator);
+
+        $dryRun = $request->has('dry_run');
+        $resultado = $this->facturanteService->recuperarStockLocal(
+            $request->desdefecha,
+            $request->hastafecha,
+            $dryRun
+        );
+
+        if (isset($resultado['error']))
+            return redirect()->route('crear_importacion_facturas_tiendanube')
+                ->with('mensaje', $resultado['error']);
+
+        $mensaje = $resultado['mensaje'];
+        if (count($resultado['errores']) > 0)
+            $mensaje .= '. Errores: '.implode('; ', $resultado['errores']);
+
+        return redirect()->route('crear_importacion_facturas_tiendanube')
+            ->with('mensaje', $mensaje);
+    }
+
+    public function verificarImportacionFacturante(Request $request)
+    {
+        ini_set('memory_limit', '-1');
+        ini_set('max_execution_time', '2400');
+
+        $rules = [
+            'desdefecha' => 'required',
+            'hastafecha' => 'required'
+        ];
+        $messages = [
+            'desdefecha.required' => 'Fecha desde es requerida.',
+            'hastafecha.required' => 'Fecha hasta es requerida.',
+        ];
+
+        $validator = \Validator::make($request->all(), $rules, $messages);
+        if ($validator->fails())
+            return redirect()->route('crear_importacion_facturas_tiendanube')
+                ->withErrors($validator);
+
+        $medioPago_enum = [
+            '1' => 'Mercado pago',
+            '2' => 'Tienda nube',
+            '3' => 'Go',
+            '4' => 'Transferencia',
+            '5' => 'Nube BOA',
+            '6' => 'No transfiere',
+        ];
+
+        $resultado = $this->facturanteService->verificarPeriodoFacturante(
+            $request->desdefecha,
+            $request->hastafecha
+        );
+
+        if (isset($resultado['error']))
+            return redirect()->route('crear_importacion_facturas_tiendanube')
+                ->with('mensaje', $resultado['error']);
+
+        return view('ventas.facturante.verificar', [
+            'desdefecha' => $resultado['desdefecha'],
+            'hastafecha' => $resultado['hastafecha'],
+            'resumen' => $resultado['resumen'],
+            'detalle' => $resultado['detalle'],
+            'medioPago_enum' => $medioPago_enum
+        ]);
     }
 
 }

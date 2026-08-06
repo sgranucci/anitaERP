@@ -418,6 +418,8 @@ Route::post('stock/precio/limpiafiltro', 'Stock\PrecioController@limpiafiltro')-
  Route::get('ventas/crearimportacionfacturastiendanube', 'Ventas\FacturanteController@crearImportacion')->name('crear_importacion_facturas_tiendanube');
  Route::post('ventas/listarfacturastiendanube', 'Ventas\FacturanteController@listarComprobanteFull')->name('listar_facturas_tiendanube');
  Route::post('ventas/generarfacturastiendanube', 'Ventas\FacturanteController@generarFacturasTiendaNube')->name('generar_facturas_tiendanube');
+ Route::post('ventas/recuperarstockfacturante', 'Ventas\FacturanteController@recuperarStockLocal')->name('recuperar_stock_facturante');
+ Route::post('ventas/verificarimportacionfacturante', 'Ventas\FacturanteController@verificarImportacionFacturante')->name('verificar_importacion_facturante');
 
 /* 
  * Unidades de medida

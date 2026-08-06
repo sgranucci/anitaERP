@@ -49,6 +49,10 @@ use App\Models\Ventas\Ordentrabajo;
 use App\Models\Ventas\Copiaot;
 use App\Models\Ventas\Condicionventa;
 use App\Models\Ventas\Condicionventacuota;
+use App\Models\Ventas\Venta;
+use App\Models\Ventas\Venta_Emision;
+use App\Models\Ventas\Pedido;
+use App\Models\Ventas\Cliente_Cuentacorriente;
 use App\Models\Configuracion\Empresa;
 use App\Models\Configuracion\Localidad;
 use App\Models\Configuracion\Moneda;
@@ -478,7 +482,22 @@ class FacturacionService
 			$this->nombreTipoTransaccion = $tipotransaccion->nombre;
 			$signo = $tipotransaccion->signo == 'S' ? 1. : -1.;
 			// Numera factura con web service si es factura electronica
-			if ($puntoventa->modofacturacion != 'M')
+			// Permite recuperar comprobante ya autorizado en AFIP (huérfano) forzando número/CAE
+			$caeForzado = !empty($data['cae_forzado']) ? [
+				'cae' => $data['cae_forzado'],
+				'fechavencimientocae' => $data['fechavencimientocae_forzado'] ?? null,
+			] : null;
+
+			if (!empty($data['numerocomprobante_forzado']))
+			{
+				$numero = (int) $data['numerocomprobante_forzado'] - 1;
+				if ($puntoventa->modofacturacion != 'M')
+				{
+					$this->facturaelectronicaService->armaTipoTransaccion($letra, $cliente->modoFacturacion, $codigoTipoTransaccion,
+																			$puntoventa, $totalComprobante);
+				}
+			}
+			elseif ($puntoventa->modofacturacion != 'M')
 			{
 				$this->facturaelectronicaService->armaTipoTransaccion($letra, $cliente->modoFacturacion, $codigoTipoTransaccion,
 																		$puntoventa, $totalComprobante);
@@ -504,7 +523,9 @@ class FacturacionService
 				$numero++;
 
 				// Pide numero de remito
-				if ($puntoventaremito && $puntoventa->modofacturacion != 'M')
+				if (!empty($data['numeroremito_forzado']))
+					$numeroremito = (int) $data['numeroremito_forzado'];
+				elseif ($puntoventaremito && $puntoventa->modofacturacion != 'M')
 					$numeroremito = $this->ventaRepository->traeUltimoNumeroRemito('REM','R',$puntoventaremito->codigo);
 				else	
 					$numeroremito = 0;
@@ -789,21 +810,30 @@ class FacturacionService
 						if ($anita == 'Errvend')
 							throw new Exception('No tiene vendedor asignado.');
 
-						// Solicita CAE
+						// Solicita CAE (o usa CAE ya autorizado en AFIP en recuperación)
 						if ($puntoventa->modofacturacion != 'M')
 						{
-							$cae = $this->facturaelectronicaService->solicitaCAE(
-								$empresa->nroinscripcion,
-								$codigoTipoTransaccion,
-								$puntoventa,
-								$dataCAE);
-							//$cae = ['cae' => '74040779002259', 'fechavencimientocae' => '20240201'];
-							
-							if ($cae == 'Error')
-								throw new Exception('No pudo asignar CAE');
-	
-							if ($cae['fechavencimientocae'] == 0)
-								throw new Exception('No pudo asignar CAE');
+							if ($caeForzado)
+							{
+								if (empty($caeForzado['cae']) || empty($caeForzado['fechavencimientocae']))
+									throw new Exception('CAE forzado incompleto');
+								$cae = $caeForzado;
+							}
+							else
+							{
+								$cae = $this->facturaelectronicaService->solicitaCAE(
+									$empresa->nroinscripcion,
+									$codigoTipoTransaccion,
+									$puntoventa,
+									$dataCAE);
+								//$cae = ['cae' => '74040779002259', 'fechavencimientocae' => '20240201'];
+								
+								if ($cae == 'Error')
+									throw new Exception('No pudo asignar CAE');
+		
+								if ($cae['fechavencimientocae'] == 0)
+									throw new Exception('No pudo asignar CAE');
+							}
 						}
 						$this->ventaRepository->update([
 														'cae' => $cae['cae'], 
@@ -1894,6 +1924,25 @@ class FacturacionService
 	}
 
 	// Busca si existe la factura
+	private function buscaVenCaeAnita($tipo, $letra, $puntoventa, $numero)
+	{
+		$apiAnita = new ApiAnita();
+		$data = array('acc' => 'list',
+						'tabla' => 'vencae',
+						'campos' => 'venc_nro',
+						'whereArmado' => " WHERE venc_tipo = '".$tipo."' AND
+												venc_letra = '".$letra."' AND
+												venc_sucursal = '".$puntoventa."' AND
+												venc_nro = '".$numero."'
+						");
+		$dataAnita = json_decode($apiAnita->apiCall($data));
+
+		if (count($dataAnita) > 0)
+			return $dataAnita[0]->venc_nro;
+
+		return 0;
+	}
+
 	private function buscaVentaAnita($tipo, $letra, $puntoventa, $numero)
 	{
 		$apiAnita = new ApiAnita();
@@ -1913,6 +1962,200 @@ class FacturacionService
 			return $dataAnita[0]->ven_nro;
 		
 		return 0;
+	}
+
+	public function grabaStockLocal($puntoventa, $letra, $venta, $datatalle,
+		$codigoCliente = '', $vendedor = 1, $zonavta_id = 0, $provincia_id = 902,
+		$subzonavta_id = 0, $servidor = 'LOCAL_IP', $ifx_server = 'IFX_SERVER_LOCAL')
+	{
+		$dataItem = $this->agrupaItemsPorMedida($datatalle, $ifx_server);
+		$usuario = Auth::check() ? Auth::user()->nombre : 'ERP';
+		$orden = 0;
+
+		foreach ($dataItem as $medida)
+		{
+			$orden++;
+			$impuesto = Impuesto::findOrFail($medida['impuesto_id']);
+			$tasa = $impuesto ? $impuesto->valor : 1;
+
+			if ($medida['incluyeimpuesto'] == '1')
+				$precio = $medida['precio'] / (1 + ($tasa / 100));
+			else
+				$precio = $medida['precio'];
+
+			$deposito = isset($medida['deposito']) ? $medida['deposito'] : 1;
+			if ($ifx_server == 'IFX_SERVER_LOCAL')
+				$deposito = ($puntoventa == 27) ? 27 : 10;
+
+			$apiAnita = new ApiAnita();
+			$data = array('tabla' => 'stkmov',
+				'acc' => 'insert',
+				'campos' => '
+					stkv_articulo, stkv_agrupacion, stkv_fecha,
+					stkv_tipo, stkv_letra, stkv_sucursal, stkv_nro,
+					stkv_ref_tipo, stkv_ref_sucursal, stkv_ref_nro,
+					stkv_deposito, stkv_cantidad, stkv_precio, stkv_cod_mon,
+					stkv_cod_impuesto, stkv_descuento, stkv_dto_gral, stkv_comision,
+					stkv_nro_orden, stkv_cli_pro, stkv_vendedor, stkv_zona_vta,
+					stkv_zona_mult, stkv_subzona, stkv_comprador, stkv_partida, stkv_pedido,
+					stkv_usuario, stkv_terminal, stkv_fe_ult_act, stkv_cod_entrega,
+					stkv_cod_umd, stkv_unidad_xenv, stkv_cod_umd_alter, stkv_cant_unidad,
+					stkv_color
+				',
+				'valores' => "
+					'".str_pad($medida['sku'], 13, "0", STR_PAD_LEFT)."',
+					'".str_pad($medida['categoria'], 4, "0", STR_PAD_LEFT)."',
+					'".date('Ymd', strtotime($venta['fecha']))."',
+					'".substr($venta['codigo'], 0, 3)."',
+					'".$letra."',
+					'".$puntoventa."',
+					'".$venta['numerocomprobante']."',
+					'".' '."',
+					'".'0'."',
+					'".'0'."',
+					'".$deposito."',
+					'".$medida['cantidad']."',
+					'".$precio."',
+					'".$venta['moneda_id']."',
+					'".$medida['impuesto_id']."',
+					'".($this->descuentoLinea == null || $letra == 'E' ? 0 : $this->descuentoLinea)."',
+					'".($this->descuentoPie == null ? 0 : $this->descuentoPie)."',
+					'".'0'."',
+					'".$orden."',
+					'".str_pad($codigoCliente, 6, "0", STR_PAD_LEFT)."',
+					'".$vendedor."',
+					'".($zonavta_id == null ? '0' : $zonavta_id)."',
+					'".($provincia_id == null ? '0' : $provincia_id)."',
+					'".($subzonavta_id == null ? '0' : $subzonavta_id)."',
+					'".'0'."',
+					'".($ifx_server == 'IFX_SERVER_LOCAL' ? $medida['medida'] : $medida['partida'])."',
+					'".substr($medida['pedido'], -8)."',
+					'".$usuario."',
+					'".'ERP'."',
+					'".date_format(Carbon::now(), 'Ymd')."',
+					'".'0'."',
+					'".'0'."',
+					'".'0'."',
+					'".'0'."',
+					'".'0'."',
+					'".$medida['codigocombinacion']."'
+				",
+				'servidor' => $servidor,
+				'ifx_server' => $ifx_server
+			);
+			$stkmov = $apiAnita->apiCall($data);
+			if ($this->respuestaAnitaFallo($stkmov))
+				return 'Error stkmov: '.$stkmov;
+
+			$apiAnita = new ApiAnita();
+			$data = array('tabla' => 'stkvmed',
+				'acc' => 'insert',
+				'campos' => '
+					stkvm_articulo, stkvm_agrupacion, stkvm_fecha,
+					stkvm_tipo, stkvm_letra, stkvm_sucursal, stkvm_nro,
+					stkvm_nro_orden, stkvm_deposito, stkvm_cli_pro, stkvm_vendedor,
+					stkvm_zona_vta, stkvm_zona_mult, stkvm_subzona_vta, stkvm_comprador,
+					stkvm_partida, stkvm_medida, stkvm_marca, stkvm_linea, stkvm_cantidad,
+					stkvm_color
+				',
+				'valores' => "
+					'".str_pad($medida['sku'], 13, "0", STR_PAD_LEFT)."',
+					'".str_pad($medida['categoria'], 4, "0", STR_PAD_LEFT)."',
+					'".date('Ymd', strtotime($venta['fecha']))."',
+					'".substr($venta['codigo'], 0, 3)."',
+					'".$letra."',
+					'".$puntoventa."',
+					'".$venta['numerocomprobante']."',
+					'".$orden."',
+					'".$deposito."',
+					'".str_pad($codigoCliente, 6, "0", STR_PAD_LEFT)."',
+					'".$vendedor."',
+					'".($zonavta_id == null ? '0' : $zonavta_id)."',
+					'".($provincia_id == null ? '0' : $provincia_id)."',
+					'".($subzonavta_id == null ? '0' : $subzonavta_id)."',
+					'".'0'."',
+					'".($ifx_server == 'IFX_SERVER_LOCAL' ? $medida['medida'] : $medida['partida'])."',
+					'".$medida['medida']."',
+					'".'0'."',
+					'".'0'."',
+					'".$medida['cantidad']."',
+					'".$medida['codigocombinacion']."'
+				",
+				'servidor' => $servidor,
+				'ifx_server' => $ifx_server
+			);
+			$stkvmed = $apiAnita->apiCall($data);
+			if ($this->respuestaAnitaFallo($stkvmed))
+				return 'Error stkvmed';
+		}
+
+		return 'Success';
+	}
+
+	private function agrupaItemsPorMedida($datatalle, $ifx_server)
+	{
+		$dataItem = [];
+		foreach ($datatalle as $item)
+		{
+			foreach ($item['medidas'] as $medida)
+			{
+				$partida = 1;
+				if ($medida['medida'] >= config('consprod.DESDE_INTERVALO1') &&
+					$medida['medida'] <= config('consprod.HASTA_INTERVALO1'))
+					$partida = 1;
+				if ($medida['medida'] >= config('consprod.DESDE_INTERVALO2') &&
+					$medida['medida'] <= config('consprod.HASTA_INTERVALO2'))
+					$partida = 2;
+				if ($medida['medida'] >= config('consprod.DESDE_INTERVALO3') &&
+					$medida['medida'] <= config('consprod.HASTA_INTERVALO3'))
+					$partida = 3;
+				if ($medida['medida'] >= config('consprod.DESDE_INTERVALO4') &&
+					$medida['medida'] <= config('consprod.HASTA_INTERVALO4'))
+					$partida = 4;
+
+				for ($ii = 0, $flEncontro = false; $ii < count($dataItem); $ii++)
+				{
+					if (($ifx_server == 'IFX_SERVER_LOCAL' ?
+						$dataItem[$ii]['medida'] == $medida['medida'] : $dataItem[$ii]['partida'] == $partida) &&
+						$dataItem[$ii]['sku'] == $item['sku'] &&
+						$dataItem[$ii]['codigocombinacion'] == $item['codigocombinacion'])
+					{
+						$flEncontro = true;
+						break;
+					}
+				}
+
+				if ($flEncontro)
+					$dataItem[$ii]['cantidad'] += $medida['cantidad'];
+				else
+				{
+					$dataItem[] = [
+						'partida' => $partida,
+						'cantidad' => $medida['cantidad'],
+						'precio' => $medida['precio'],
+						'impuesto_id' => $item['impuesto_id'],
+						'incluyeimpuesto' => $item['incluyeimpuesto'],
+						'pedido' => $medida['pedido'],
+						'sku' => $item['sku'],
+						'descripcion' => $item['descripcion'],
+						'categoria' => $item['categoria'],
+						'codigocombinacion' => $item['codigocombinacion'],
+						'despacho' => $item['despacho'],
+						'medida' => $medida['medida']
+					];
+				}
+			}
+		}
+
+		return $dataItem;
+	}
+
+	private function respuestaAnitaFallo($respuesta)
+	{
+		if ($respuesta === false || $respuesta === null || $respuesta === '')
+			return true;
+
+		return strpos($respuesta, 'Error') !== false;
 	}
 
 	// Borra factura en Anita
@@ -2061,6 +2304,210 @@ class FacturacionService
 			return 'Error vencae';
 
 		return 'Success';
+	}
+
+	public function recuperarGrabacionAnita($ventaId)
+	{
+		$ventaModel = $this->ventaRepository->find($ventaId);
+		if (!$ventaModel)
+			return ['error' => 'Venta no encontrada'];
+
+		if (!$ventaModel->cae)
+			return ['error' => 'La venta no tiene CAE asignado'];
+
+		$puntoventa = $this->puntoventaRepository->find($ventaModel->puntoventa_id);
+		$puntoventaremito = $ventaModel->puntoventaremito_id
+			? $this->puntoventaRepository->find($ventaModel->puntoventaremito_id)
+			: null;
+
+		$letra = 'A';
+		if (preg_match('/\s([A-Z])\s*-/', $ventaModel->codigo, $matches))
+			$letra = $matches[1];
+
+		$tipo = substr($ventaModel->codigo, 0, 3);
+		$enAnita = $this->buscaVentaAnita($tipo, $letra, $puntoventa->codigo, $ventaModel->numerocomprobante);
+
+		$emisiones = Venta_Emision::where('venta_id', $ventaModel->id)->orderBy('numeroitem')->get();
+		if ($emisiones->isEmpty())
+			return ['error' => 'La venta no tiene items de emision'];
+
+		$cliente = $this->clienteQuery->traeClienteporId($ventaModel->cliente_id);
+		$cliente->load('cuentascontables');
+
+		$this->descuentoLinea = 0;
+		$this->descuentoPie = $ventaModel->descuento ?? 0;
+		$this->descuentoImportePie = 0;
+		$this->cantidadBulto = $ventaModel->cantidadbulto ?? 1;
+		$this->numeroDespacho = 0;
+		$this->codigoCuentaContable = $cliente->cuentascontables->codigo ?? '114110007';
+		$this->leyendaExportacion = '';
+
+		$dataFactura = [];
+		foreach ($emisiones as $emision)
+		{
+			$articulo = Articulo::with('categorias')->find($emision->articulo_id);
+			$combinacion = Combinacion::find($emision->combinacion_id);
+			$talle = Talle::find($emision->talle_id);
+			$pedidoCodigo = Pedido::join('pedido_combinacion', 'pedido_combinacion.pedido_id', '=', 'pedido.id')
+				->where('pedido_combinacion.id', $emision->pedido_combinacion_id)
+				->value('pedido.codigo') ?? '0';
+
+			if ($articulo)
+				$this->mventa_id = $articulo->mventa_id;
+
+			$codigoCategoria = $articulo && $articulo->categorias ? $articulo->categorias->codigo : 0;
+			$flEncontro = false;
+
+			for ($i = 0; $i < count($dataFactura); $i++)
+			{
+				if ($dataFactura[$i]['precio'] == $emision->precio &&
+					$dataFactura[$i]['sku'] == $articulo->sku &&
+					$dataFactura[$i]['combinacion_id'] == $emision->combinacion_id)
+				{
+					$flEncontro = true;
+					break;
+				}
+			}
+
+			if (!$flEncontro)
+			{
+				$dataFactura[] = [
+					'cantidad' => $emision->cantidad,
+					'precio' => $emision->precio,
+					'descuento' => $emision->descuento,
+					'descuentointegrado' => $emision->descuentointegrado ?? '',
+					'descuentofinal' => $this->descuentoPie,
+					'descuentointegradofinal' => '',
+					'incluyeimpuesto' => $emision->incluyeimpuesto,
+					'impuesto_id' => $emision->impuesto_id,
+					'articulo_id' => $emision->articulo_id,
+					'sku' => $articulo->sku ?? '',
+					'descripcion' => $emision->detalle,
+					'codigounidadmedida' => 1,
+					'categoria' => $codigoCategoria,
+					'combinacion_id' => $emision->combinacion_id,
+					'codigocombinacion' => $combinacion->codigo ?? 0,
+					'modulo_id' => $emision->modulo_id,
+					'moneda_id' => $emision->moneda_id,
+					'listaprecio_id' => 1,
+					'despacho' => $this->numeroDespacho,
+					'loteimportacion_id' => $emision->loteimportacion_id ?? 0,
+					'ordentrabajo_id' => $emision->ordentrabajo_id,
+					'pedido_combinacion_id' => $emision->pedido_combinacion_id,
+					'medidas' => [],
+				];
+				$i = count($dataFactura) - 1;
+			}
+			else
+			{
+				$dataFactura[$i]['cantidad'] += $emision->cantidad;
+			}
+
+			$dataFactura[$i]['medidas'][] = [
+				'id' => $emision->id,
+				'talle' => $emision->talle_id,
+				'medida' => $talle->nombre ?? '',
+				'cantidad' => $emision->cantidad,
+				'precio' => $emision->precio,
+				'pedido' => $pedidoCodigo,
+			];
+		}
+
+		$datosCliente = [
+			'condicioniva_id' => $ventaModel->condicioniva_id,
+			'nroinscripcion' => $ventaModel->nroinscripcion,
+			'retieneiva' => $cliente->retieneiva ?? 'N',
+			'condicioniibb' => $cliente->condicioniibb ?? '',
+			'provincia' => $ventaModel->provincia_id,
+			'descuentoimportepie' => $this->descuentoImportePie,
+		];
+
+		$conceptosTotales = $this->impuestoService->calculaImpuestoVenta($dataFactura, $datosCliente);
+		$totalComprobante = $this->impuestoService->buscaValor($conceptosTotales, 'concepto', 'Total', 'importe');
+
+		if (abs($totalComprobante - abs($ventaModel->total)) > 1)
+			return ['error' => 'El total recalculado ('.$totalComprobante.') no coincide con la venta ('.$ventaModel->total.')'];
+
+		$cuentacorriente = Cliente_Cuentacorriente::where('venta_id', $ventaModel->id)
+			->get()
+			->map(function ($cuota) {
+				return [
+					'fechavencimiento' => $cuota->fechavencimiento,
+					'total' => abs($cuota->total),
+				];
+			})->values()->all();
+
+		if (empty($cuentacorriente))
+		{
+			$cuentacorriente = $this->calculaCondicionVenta(
+				$ventaModel->fecha,
+				$totalComprobante,
+				$ventaModel->condicionventa_id
+			);
+		}
+
+		$dataCAE = [
+			'exento' => $this->impuestoService->buscaValor($conceptosTotales, 'concepto', 'Exento', 'importe'),
+			'nogravado' => $this->impuestoService->buscaValor($conceptosTotales, 'concepto', 'No Gravado', 'importe'),
+			'gravado' => $this->impuestoService->buscaValor($conceptosTotales, 'concepto', 'Gravado al', 'importe'),
+			'iva' => $this->impuestoService->buscaValor($conceptosTotales, 'concepto', 'Iva ', 'importe'),
+		];
+
+		$venta = $ventaModel->toArray();
+		$tipotransaccion = $this->tipotransaccionRepository->find($ventaModel->tipotransaccion_id);
+		$signo = $tipotransaccion && $tipotransaccion->signo == 'S' ? 1. : -1.;
+		$cuentaVenta = '411000001';
+
+		if ($enAnita == 0)
+		{
+			$anita = self::grabaAnita(
+				$puntoventa->codigo,
+				$letra,
+				$puntoventaremito ? $puntoventaremito->codigo : 0,
+				$ventaModel->numeroremito ?? 0,
+				$venta,
+				$dataCAE,
+				$conceptosTotales,
+				$cuentacorriente,
+				$dataFactura,
+				$signo,
+				$cuentaVenta,
+				$this->codigoCuentaContable,
+				true
+			);
+
+			if (strpos($anita, 'Error') !== false)
+				return ['error' => $anita];
+
+			if ($anita == 'Errvend')
+				return ['error' => 'No tiene vendedor asignado.'];
+		}
+
+		$vencaeAnita = $this->buscaVenCaeAnita($tipo, $letra, $puntoventa->codigo, $ventaModel->numerocomprobante);
+		if ($vencaeAnita == 0)
+		{
+			$vencae = self::grabaVenCae(
+				$tipo,
+				$letra,
+				$puntoventa->codigo,
+				$ventaModel->numerocomprobante,
+				$ventaModel->cae,
+				date('Ymd', strtotime($ventaModel->fechavencimientocae))
+			);
+
+			if (strpos($vencae, 'Error') !== false)
+				return ['error' => $vencae];
+		}
+
+		$verificacion = $this->buscaVentaAnita($tipo, $letra, $puntoventa->codigo, $ventaModel->numerocomprobante);
+		if ($verificacion == 0)
+			return ['error' => 'La grabacion en Anita no pudo verificarse'];
+
+		return [
+			'error' => '',
+			'mensaje' => 'Factura '.$ventaModel->codigo.' recuperada en Anita',
+			'comprobante' => $ventaModel->codigo,
+		];
 	}
 
 	public function leeFactura($id)
